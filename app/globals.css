@@ -175,12 +175,99 @@ textarea {
   z-index: 1;
 }
 
+.magic-terminal-shell {
+  position: relative;
+  isolation: isolate;
+}
+
+.magic-terminal-shell::before {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(circle at 18% 18%, color-mix(in srgb, var(--main) 26%, transparent), transparent 34%),
+    radial-gradient(circle at 86% 78%, color-mix(in srgb, var(--destructive) 16%, transparent), transparent 30%);
+  content: "";
+  pointer-events: none;
+}
+
+.magic-terminal-shell::after {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: linear-gradient(110deg, transparent 0 35%, rgba(255, 255, 255, 0.12) 45%, transparent 55% 100%);
+  content: "";
+  pointer-events: none;
+  transform: translateX(-120%);
+  animation: magic-terminal-scan 4.2s ease-in-out infinite;
+}
+
+.magic-terminal-body {
+  background-image:
+    linear-gradient(to right, rgba(248, 251, 255, 0.07) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(248, 251, 255, 0.07) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+.magic-terminal-status-dot {
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--main) 55%, transparent);
+  animation: magic-terminal-pulse 1.4s ease-out infinite;
+}
+
+.magic-terminal-command {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  width: 0;
+  animation: magic-terminal-type 1.65s steps(28, end) forwards;
+  animation-delay: var(--delay);
+}
+
+.magic-terminal-progress span {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--main), #ffffff, var(--destructive));
+  animation: magic-terminal-progress 3s ease forwards;
+  animation-delay: 650ms;
+}
+
 .magic-terminal-line,
 .magic-type-line {
   opacity: 0;
   transform: translateY(6px);
   animation: magic-line-in 420ms ease forwards;
   animation-delay: var(--delay);
+}
+
+.magic-terminal-check {
+  animation: magic-terminal-pop 520ms ease both;
+  animation-delay: var(--delay);
+}
+
+.magic-terminal-spinner {
+  animation:
+    magic-terminal-spin 780ms linear infinite,
+    magic-terminal-done 1ms linear forwards;
+  animation-delay: 0ms, calc(var(--delay) + 460ms);
+}
+
+.magic-terminal-metrics span {
+  border: 1px solid rgba(248, 251, 255, 0.16);
+  border-radius: var(--radius);
+  background: rgba(248, 251, 255, 0.06);
+  padding: 0.5rem;
+  animation: magic-terminal-metric 1.8s ease-in-out infinite;
+}
+
+.magic-terminal-metrics span:nth-child(2) {
+  animation-delay: 160ms;
+}
+
+.magic-terminal-metrics span:nth-child(3) {
+  animation-delay: 320ms;
 }
 
 .magic-type-line::after {
@@ -355,6 +442,81 @@ textarea {
   }
 }
 
+@keyframes magic-terminal-scan {
+  0%,
+  44% {
+    transform: translateX(-120%);
+  }
+
+  100% {
+    transform: translateX(120%);
+  }
+}
+
+@keyframes magic-terminal-pulse {
+  70% {
+    box-shadow: 0 0 0 10px color-mix(in srgb, var(--main) 0%, transparent);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--main) 0%, transparent);
+  }
+}
+
+@keyframes magic-terminal-type {
+  to {
+    width: 100%;
+  }
+}
+
+@keyframes magic-terminal-progress {
+  35% {
+    width: 44%;
+  }
+
+  70% {
+    width: 76%;
+  }
+
+  100% {
+    width: 100%;
+  }
+}
+
+@keyframes magic-terminal-spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+@keyframes magic-terminal-done {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes magic-terminal-pop {
+  0% {
+    transform: scale(0.72);
+  }
+
+  65% {
+    transform: scale(1.12);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes magic-terminal-metric {
+  50% {
+    border-color: color-mix(in srgb, var(--main) 60%, transparent);
+    color: var(--main);
+    transform: translateY(-1px);
+  }
+}
+
 @keyframes magic-highlight {
   to {
     transform: rotate(-1deg) scaleX(1);
@@ -368,6 +530,13 @@ textarea {
   .dx-float,
   .dx-scan-line::after,
   .magic-border-beam::before,
+  .magic-terminal-shell::after,
+  .magic-terminal-status-dot,
+  .magic-terminal-command,
+  .magic-terminal-progress span,
+  .magic-terminal-check,
+  .magic-terminal-spinner,
+  .magic-terminal-metrics span,
   .border-beam-card::before,
   .magic-highlighter::after,
   .magic-typing-caret,

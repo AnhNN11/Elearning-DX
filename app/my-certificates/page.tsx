@@ -3,15 +3,15 @@ import { AppHeader } from "@/components/app-header";
 import { SectionHeader } from "@/components/ui";
 import { Card, CardContent } from "@/components/ui/card";
 import { requireUser } from "@/lib/auth";
-import { getDemoCertificates } from "@/lib/data";
+import { getUserCertificates } from "@/lib/data";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import { getLocale } from "@/lib/i18n/server";
 
 export default async function MyCertificatesPage() {
-  await requireUser();
+  const profile = await requireUser();
   const locale = await getLocale();
   const dict = getDictionary(locale);
-  const certificates = await getDemoCertificates();
+  const certificates = await getUserCertificates(profile.id);
   const dateLocale = locale === "vi" ? "vi-VN" : "en-US";
 
   return (
@@ -24,7 +24,7 @@ export default async function MyCertificatesPage() {
           title={dict.nav.certificates}
         />
         <div className="mt-8 grid gap-5 md:grid-cols-2">
-          {certificates.map((certificate) => (
+          {certificates.length ? certificates.map((certificate) => (
             <Card className="transition hover:-translate-y-1 hover:shadow-md" key={certificate.id}>
               <CardContent>
                 <Link className="block" href={`/certificate/${certificate.id}`}>
@@ -36,7 +36,13 @@ export default async function MyCertificatesPage() {
                 </Link>
               </CardContent>
             </Card>
-          ))}
+          )) : (
+            <Card className="border-dashed">
+              <CardContent>
+                <p className="font-bold text-muted-foreground">Bạn chưa có chứng chỉ thật trong Supabase.</p>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </section>
     </main>

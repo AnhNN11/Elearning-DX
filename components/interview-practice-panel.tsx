@@ -4,7 +4,7 @@ import { CheckCircle2, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { MarkdownViewer } from "@/components/markdown-viewer";
@@ -256,9 +256,9 @@ export function InterviewPracticePanel({
                     {practice.completed[question.id] ? copy.unmarkDone : copy.markDone}
                   </Button>
                 </div>
-                <CardTitle className="text-2xl font-black leading-tight md:text-3xl">
-                  {question.question}
-                </CardTitle>
+                <div className="text-2xl font-black leading-tight md:text-3xl">
+                  <MarkdownViewer content={question.question} />
+                </div>
               </CardHeader>
               <CardContent className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
                 <div className="rounded-base border-2 border-border bg-muted p-4">

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AppFooter } from "@/components/app-footer";
 import { FirebaseAnalytics } from "@/components/firebase-analytics";
+import { FooterGate } from "@/components/footer-gate";
 import { SmoothCursor } from "@/components/smooth-cursor";
 import { getLocale } from "@/lib/i18n/server";
 import "./globals.css";
@@ -32,11 +33,14 @@ export default async function RootLayout({
     <html
       lang={locale}
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      data-scroll-behavior="smooth"
     >
       <body className="min-h-full flex flex-col">
         <SmoothCursor />
         {children}
-        <AppFooter />
+        <FooterGate>
+          <AppFooter />
+        </FooterGate>
         <FirebaseAnalytics />
       </body>
     </html>

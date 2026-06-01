@@ -17,7 +17,7 @@ export function MagicCodingShowcase({ copy }: { copy: Dictionary["home"] }) {
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-          <Card className="overflow-hidden bg-foreground p-0 text-background">
+          <Card className="magic-terminal-shell overflow-hidden bg-foreground p-0 text-background">
             <CardContent className="p-0">
               <div className="flex items-center justify-between gap-4 border-b-2 border-border bg-background px-4 py-3 text-foreground">
                 <div className="flex items-center gap-2">
@@ -28,26 +28,50 @@ export function MagicCodingShowcase({ copy }: { copy: Dictionary["home"] }) {
                     ~/dolphinx/lesson
                   </span>
                 </div>
-                <Badge variant="outline">{copy.terminalTitle}</Badge>
+                <div className="flex items-center gap-2">
+                  <span className="magic-terminal-status-dot size-2 rounded-full bg-main" />
+                  <Badge variant="outline">{copy.terminalTitle}</Badge>
+                </div>
               </div>
-              <div className="p-5 font-mono text-sm leading-6">
-                <p
-                  className="magic-type-line text-main"
-                  style={{ "--delay": "0ms" } as CSSProperties}
-                >
-                  {copy.terminalLines[0]}
-                </p>
-                <div className="mt-5 space-y-2">
+              <div className="magic-terminal-body relative p-5 font-mono text-sm leading-6">
+                <div className="relative z-10 rounded-base border border-background/15 bg-background/5 p-4">
+                  <p className="text-xs font-black uppercase tracking-[0.22em] text-background/45">
+                    running pipeline
+                  </p>
+                  <div className="mt-3 flex min-w-0 items-center gap-2 text-main">
+                    <span className="shrink-0 text-background/55">$</span>
+                    <span
+                      className="magic-terminal-command min-w-0"
+                      style={{ "--delay": "120ms" } as CSSProperties}
+                    >
+                      {copy.terminalLines[0].replace(/^\$\s*/, "")}
+                    </span>
+                  </div>
+                  <div className="magic-terminal-progress mt-4 h-2 overflow-hidden rounded-full border border-background/20 bg-background/10">
+                    <span />
+                  </div>
+                </div>
+                <div className="relative z-10 mt-5 space-y-2">
                   {copy.terminalLines.slice(1).map((line, index) => (
                     <div
                       className="magic-terminal-line flex items-center justify-between gap-3 rounded-base border border-background/15 bg-background/5 px-3 py-2"
                       key={line}
-                      style={{ "--delay": `${420 + index * 160}ms` } as CSSProperties}
+                      style={{ "--delay": `${900 + index * 210}ms` } as CSSProperties}
                     >
-                      <span className="min-w-0 truncate text-background/85">{line}</span>
-                      <span className="size-2 shrink-0 rounded-full bg-main" />
+                      <span className="flex min-w-0 items-center gap-2 truncate text-background/85">
+                        <span className="magic-terminal-check grid size-5 shrink-0 place-items-center rounded-full border border-main/50 text-[10px] text-main">
+                          ✓
+                        </span>
+                        <span className="truncate">{line}</span>
+                      </span>
+                      <span className="magic-terminal-spinner size-3 shrink-0 rounded-full border-2 border-background/25 border-t-main" />
                     </div>
                   ))}
+                </div>
+                <div className="magic-terminal-metrics relative z-10 mt-5 grid grid-cols-3 gap-2 text-center text-xs font-black uppercase text-background/65">
+                  <span>tests</span>
+                  <span>sync</span>
+                  <span>save</span>
                 </div>
               </div>
             </CardContent>

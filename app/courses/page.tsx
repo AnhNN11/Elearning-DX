@@ -4,7 +4,6 @@ import { CourseExplorer } from "@/components/course-explorer";
 import { DotPattern } from "@/components/dot-pattern";
 import { SectionHeader } from "@/components/ui";
 import { Badge } from "@/components/ui/badge";
-import { getCourseBanner } from "@/lib/course-banners";
 import { getCourses } from "@/lib/data";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import { getLocale } from "@/lib/i18n/server";
@@ -37,14 +36,20 @@ export default async function CoursesPage({
           </div>
           {featuredCourse && (
             <div className="relative h-72 overflow-hidden rounded-base border-2 border-background bg-background shadow-shadow">
-              <Image
-                alt={`${featuredCourse.title} banner`}
-                className="h-full w-full object-cover"
-                height={520}
-                priority
-                src={getCourseBanner(featuredCourse.slug)}
-                width={900}
-              />
+              {featuredCourse.thumbnailUrl ? (
+                <Image
+                  alt={`${featuredCourse.title} banner`}
+                  className="h-full w-full object-cover"
+                  height={520}
+                  priority
+                  src={featuredCourse.thumbnailUrl}
+                  width={900}
+                />
+              ) : (
+                <div className="grid h-full place-items-center bg-secondary px-8 text-center text-3xl font-black uppercase text-foreground">
+                  {featuredCourse.title}
+                </div>
+              )}
             </div>
           )}
         </div>

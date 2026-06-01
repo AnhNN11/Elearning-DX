@@ -3,545 +3,318 @@
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { z } from "zod";
-import { requireAdmin, requireUser } from "./auth";
-import { getLesson } from "./data";
-import { createClient } from "./supabase/server";
-import { hasSupabaseEnv } from "./supabase/config";
-import { getYouTubeVideoId } from "./youtube";
 
-const completeLessonSchema = z.object({
-  courseSlug: z.string().min(1),
-  lessonSlug: z.string().min(1),
-});
+type ApiPayload = {
+  ok?: boolean;
+  error?: string;
+  url?: string;
+  course?: {
+    id: string;
+    slug: string;
+    title?: string;
+  };
+};
 
-const enrollSchema = z.object({
-  courseId: z.string().min(1),
-  courseSlug: z.string().min(1),
-});
+function formValue(formData: FormData, key: string) {
+  const value = formData.get(key);
+  return typeof value === "string" ? value : "";
+}
 
-const courseSchema = z.object({
-  title: z.string().min(2),
-  slug: z.string().min(2),
-  category: z.string().min(2),
-  level: z.string().min(2),
-  description: z.string().min(10),
-});
+async function getInternalOrigin() {
+  const headerStore = await headers();
+  const requestOrigin = headerStore.get("origin");
+  const host = headerStore.get("x-forwarded-host") ?? headerStore.get("host");
+  const protocol = headerStore.get("x-forwarded-proto") ?? "http";
 
-const optionalYouTubeUrlSchema = z
-  .string()
-  .trim()
-  .transform((value) => (value ? value : null))
-  .refine((value) => !value || Boolean(getYouTubeVideoId(value)), {
-    message: "Link YouTube không hợp lệ",
-  });
-
-const lessonSchema = z.object({
-  courseId: z.string().min(1),
-  moduleTitle: z.string().min(2),
-  title: z.string().min(2),
-  slug: z.string().min(2),
-  content: z.string().min(10),
-  videoUrl: optionalYouTubeUrlSchema,
-});
-
-const lessonVideoSchema = z.object({
-  courseId: z.string().min(1),
-  courseSlug: z.string().min(1),
-  lessonId: z.string().min(1),
-  videoUrl: optionalYouTubeUrlSchema,
-});
-
-const mentorBookingSchema = z.object({
-  fullName: z.string().min(2),
-  email: z.string().email(),
-  mentorName: z.string().min(2).optional(),
-  interviewRole: z.string().min(2).optional(),
-  skills: z.string().optional(),
-  topic: z.string().min(2),
-  level: z.string().min(2),
-  preferredTime: z.string().min(2),
-  note: z.string().max(500).optional(),
-});
-
-const blogPostSchema = z.object({
-  title: z.string().min(2),
-  slug: z.string().min(2),
-  excerpt: z.string().min(10),
-  category: z.string().min(2),
-  tags: z.string().optional(),
-  readTime: z.string().min(2),
-  locale: z.enum(["vi", "en"]),
-  content: z.string().min(10),
-  published: z.union([z.string(), z.boolean()]).optional().transform(Boolean),
-});
-
-const interviewQuestionSchema = z.object({
-  category: z.string().min(2),
-  level: z.string().min(2),
-  role: z.string().optional(),
-  skills: z.string().optional(),
-  question: z.string().min(5),
-  prompt: z.string().min(5),
-  answer: z.string().min(5),
-  checklist: z.string().min(2),
-  locale: z.enum(["vi", "en"]),
-  published: z.union([z.string(), z.boolean()]).optional().transform(Boolean),
-});
-
-const quizSchema = z.object({
-  assessmentId: z.string().min(1),
-  score: z.coerce.number().min(0).max(100),
-  passed: z.union([z.boolean(), z.string()]).transform((value) => value === true || value === "true"),
-});
-
-const codeSchema = quizSchema.extend({
-  code: z.string().min(1),
-  results: z.string().min(2),
-});
-
-const profileSchema = z.object({
-  fullName: z.string().trim().min(2),
-  avatarUrl: z
-    .string()
-    .trim()
-    .transform((value) => (value ? value : null))
-    .refine((value) => !value || z.string().url().safeParse(value).success, {
-      message: "Avatar URL không hợp lệ",
-    }),
-});
-
-export async function enrollCourseAction(formData: FormData) {
-  const parsed = enrollSchema.parse({
-    courseId: formData.get("courseId"),
-    courseSlug: formData.get("courseSlug"),
-  });
-
-  if (hasSupabaseEnv) {
-    const supabase = await createClient();
-    if (!supabase) {
-      redirect("/login");
-    }
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      redirect("/login");
-    }
-
-    await supabase.from("enrollments").upsert(
-      {
-        user_id: user.id,
-        course_id: parsed.courseId,
-        status: "active",
-      },
-      { onConflict: "user_id,course_id" },
-    );
+  if (requestOrigin) {
+    return requestOrigin;
   }
 
+  if (process.env.NEXT_PUBLIC_SITE_URL) {
+    return process.env.NEXT_PUBLIC_SITE_URL;
+  }
+
+  if (host) {
+    return `${protocol}://${host}`;
+  }
+
+  return "http://localhost:3000";
+}
+
+async function callApi(
+  path: string,
+  formData?: FormData,
+  options: {
+    admin?: boolean;
+    method?: "DELETE" | "POST" | "PATCH";
+  } = {},
+) {
+  const headerStore = await headers();
+  const cookie = headerStore.get("cookie");
+  const requestHeaders = new Headers();
+
+  if (cookie) {
+    requestHeaders.set("cookie", cookie);
+  }
+
+  const response = await fetch(`${await getInternalOrigin()}${path}`, {
+    body: formData,
+    cache: "no-store",
+    headers: requestHeaders,
+    method: options.method ?? "POST",
+  });
+  const payload = (await response.json().catch(() => ({}))) as ApiPayload;
+
+  if (response.status === 401) {
+    redirect(options.admin ? "/admin/login" : "/login");
+  }
+
+  if (response.status === 403) {
+    redirect(options.admin ? "/admin/login?error=not-admin" : "/login");
+  }
+
+  if (!response.ok) {
+    throw new Error(payload.error ?? `API request failed: ${path}`);
+  }
+
+  return payload;
+}
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Có lỗi xảy ra khi lưu dữ liệu.";
+}
+
+async function callAdminApiOrToast(
+  path: string,
+  formData: FormData | undefined,
+  returnTo: string,
+  options: {
+    method?: "DELETE" | "POST" | "PATCH";
+  } = {},
+): Promise<ApiPayload> {
+  try {
+    return await callApi(path, formData, {
+      admin: true,
+      method: options.method,
+    });
+  } catch (error) {
+    redirectWithToast(returnTo, "admin-error", {
+      message: getErrorMessage(error),
+      type: "error",
+    });
+  }
+}
+
+function redirectWithToast(
+  path: string,
+  toast: string,
+  options: {
+    message?: string;
+    type?: "error" | "info" | "success";
+  } = {},
+): never {
+  const separator = path.includes("?") ? "&" : "?";
+  const params = new URLSearchParams({
+    toast,
+    toastType: options.type ?? "success",
+  });
+
+  if (options.message) {
+    params.set("message", options.message);
+  }
+
+  redirect(`${path}${separator}${params.toString()}`);
+}
+
+export async function enrollCourseAction(formData: FormData) {
+  const courseSlug = formValue(formData, "courseSlug");
+  await callApi("/api/enrollments", formData);
+
   revalidatePath("/learn");
-  redirect(`/learn/${parsed.courseSlug}`);
+  redirect(`/learn/${courseSlug}`);
 }
 
 export async function createCourseAction(formData: FormData) {
-  await requireAdmin();
-
-  const parsed = courseSchema.parse({
-    title: formData.get("title"),
-    slug: formData.get("slug"),
-    category: formData.get("category"),
-    level: formData.get("level"),
-    description: formData.get("description"),
-  });
-
-  if (hasSupabaseEnv) {
-    const supabase = await createClient();
-    if (!supabase) {
-      redirect("/login");
-    }
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      redirect("/login");
-    }
-
-    await supabase.from("courses").insert({
-      ...parsed,
-      duration_hours: 1,
-      published: false,
-      created_by: user.id,
-      outcomes: ["Hoàn thành nội dung khóa học", "Làm bài kiểm tra", "Nhận chứng chỉ"],
-    });
-  }
+  const payload = await callAdminApiOrToast("/api/admin/courses", formData, "/admin/courses");
 
   revalidatePath("/admin/courses");
+  redirectWithToast(payload.course?.id ? `/admin/courses/${payload.course.id}` : "/admin/courses", "course-created");
+}
+
+export async function updateCourseAction(formData: FormData) {
+  const courseId = formValue(formData, "courseId");
+  const previousSlug = formValue(formData, "previousSlug");
+  const courseSlug = formValue(formData, "slug") || previousSlug;
+  await callAdminApiOrToast(`/api/admin/courses/${courseId}`, formData, `/admin/courses/${courseId}`, {
+    method: "PATCH",
+  });
+
+  revalidatePath("/courses");
+  revalidatePath(`/courses/${previousSlug}`);
+  revalidatePath(`/courses/${courseSlug}`);
+  revalidatePath("/admin/courses");
+  revalidatePath(`/admin/courses/${courseId}`);
+  redirectWithToast(`/admin/courses/${courseId}`, "course-saved");
+}
+
+export async function updateCoursePublishAction(formData: FormData) {
+  const courseId = formValue(formData, "courseId");
+  const courseSlug = formValue(formData, "courseSlug");
+  const returnTo = formValue(formData, "returnTo") || "/admin/courses";
+  await callAdminApiOrToast(`/api/admin/courses/${courseId}/publish`, formData, returnTo, {
+    method: "PATCH",
+  });
+
+  revalidatePath("/courses");
+  revalidatePath(`/courses/${courseSlug}`);
+  revalidatePath("/admin/courses");
+  revalidatePath(`/admin/courses/${courseId}`);
+  redirectWithToast(returnTo, "course-published");
+}
+
+export async function uploadCourseBannerAction(formData: FormData) {
+  const courseId = formValue(formData, "courseId");
+  const courseSlug = formValue(formData, "courseSlug");
+  await callAdminApiOrToast(`/api/admin/courses/${courseId}/banner`, formData, `/admin/courses/${courseId}`);
+
+  revalidatePath("/courses");
+  revalidatePath(`/courses/${courseSlug}`);
+  revalidatePath("/admin/courses");
+  revalidatePath(`/admin/courses/${courseId}`);
+  redirectWithToast(`/admin/courses/${courseId}`, "banner-uploaded");
+}
+
+export async function uploadCourseAssetAction(formData: FormData) {
+  const courseId = formValue(formData, "courseId");
+  const courseSlug = formValue(formData, "courseSlug");
+  await callAdminApiOrToast(`/api/admin/courses/${courseId}/assets`, formData, `/admin/courses/${courseId}`);
+
+  revalidatePath(`/courses/${courseSlug}`);
+  revalidatePath(`/admin/courses/${courseId}`);
+  redirectWithToast(`/admin/courses/${courseId}`, "asset-uploaded");
+}
+
+export async function updateUserRoleAction(formData: FormData) {
+  const userId = formValue(formData, "userId");
+  await callAdminApiOrToast(`/api/admin/users/${userId}/role`, formData, "/admin/users", {
+    method: "PATCH",
+  });
+
+  revalidatePath("/admin/users");
+  revalidatePath("/admin/roles");
+  redirectWithToast("/admin/users", "role-updated");
+}
+
+export async function createRoleAction(formData: FormData) {
+  await callAdminApiOrToast("/api/admin/roles", formData, "/admin/roles");
+
+  revalidatePath("/admin/users");
+  revalidatePath("/admin/roles");
+  redirectWithToast("/admin/roles", "role-created");
+}
+
+export async function updateBookingStatusAction(formData: FormData) {
+  const bookingId = formValue(formData, "bookingId");
+  await callAdminApiOrToast(`/api/admin/bookings/${bookingId}/status`, formData, "/admin/bookings", {
+    method: "PATCH",
+  });
+
+  revalidatePath("/admin/bookings");
+  redirectWithToast("/admin/bookings", "booking-updated");
 }
 
 export async function createLessonAction(formData: FormData) {
-  await requireAdmin();
+  const courseId = formValue(formData, "courseId");
+  const courseSlug = formValue(formData, "courseSlug");
+  await callAdminApiOrToast(`/api/admin/courses/${courseId}/lessons`, formData, `/admin/courses/${courseId}`);
 
-  const parsed = lessonSchema.parse({
-    courseId: formData.get("courseId"),
-    moduleTitle: formData.get("moduleTitle"),
-    title: formData.get("title"),
-    slug: formData.get("slug"),
-    content: formData.get("content"),
-    videoUrl: formData.get("videoUrl") ?? "",
+  revalidatePath(`/admin/courses/${courseId}`);
+  if (courseSlug) {
+    revalidatePath(`/learn/${courseSlug}`);
+  }
+  redirectWithToast(`/admin/courses/${courseId}`, "lesson-created");
+}
+
+export async function updateLessonAction(formData: FormData) {
+  const courseId = formValue(formData, "courseId");
+  const courseSlug = formValue(formData, "courseSlug");
+  const lessonId = formValue(formData, "lessonId");
+  await callAdminApiOrToast(`/api/admin/lessons/${lessonId}`, formData, `/admin/courses/${courseId}`, {
+    method: "PATCH",
   });
 
-  if (hasSupabaseEnv) {
-    const supabase = await createClient();
-    if (!supabase) {
-      redirect("/login");
-    }
-
-    const { data: moduleRow } = await supabase
-      .from("modules")
-      .insert({
-        course_id: parsed.courseId,
-        title: parsed.moduleTitle,
-        position: 99,
-      })
-      .select("id")
-      .single();
-
-    if (moduleRow) {
-      await supabase.from("lessons").insert({
-        module_id: moduleRow.id,
-        title: parsed.title,
-        slug: parsed.slug,
-        content_md: parsed.content,
-        video_url: parsed.videoUrl,
-        estimated_minutes: 15,
-        position: 0,
-      });
-    }
-  }
-
-  revalidatePath(`/admin/courses/${parsed.courseId}`);
+  revalidatePath(`/admin/courses/${courseId}`);
+  revalidatePath(`/learn/${courseSlug}`);
+  redirectWithToast(`/admin/courses/${courseId}`, "lesson-saved");
 }
 
 export async function updateLessonVideoAction(formData: FormData) {
-  await requireAdmin();
-
-  const parsed = lessonVideoSchema.parse({
-    courseId: formData.get("courseId"),
-    courseSlug: formData.get("courseSlug"),
-    lessonId: formData.get("lessonId"),
-    videoUrl: formData.get("videoUrl") ?? "",
+  const courseId = formValue(formData, "courseId");
+  const courseSlug = formValue(formData, "courseSlug");
+  const lessonId = formValue(formData, "lessonId");
+  await callAdminApiOrToast(`/api/admin/lessons/${lessonId}/video`, formData, `/admin/courses/${courseId}`, {
+    method: "PATCH",
   });
 
-  if (hasSupabaseEnv) {
-    const supabase = await createClient();
-    if (!supabase) {
-      redirect("/login");
-    }
-
-    await supabase
-      .from("lessons")
-      .update({ video_url: parsed.videoUrl })
-      .eq("id", parsed.lessonId);
-  }
-
-  revalidatePath(`/admin/courses/${parsed.courseId}`);
-  revalidatePath(`/learn/${parsed.courseSlug}`);
+  revalidatePath(`/admin/courses/${courseId}`);
+  revalidatePath(`/learn/${courseSlug}`);
+  redirectWithToast(`/admin/courses/${courseId}`, "youtube-updated");
 }
 
 export async function bookMentorAction(formData: FormData) {
-  const parsed = mentorBookingSchema.parse({
-    fullName: formData.get("fullName"),
-    email: formData.get("email"),
-    topic: formData.get("topic"),
-    mentorName: formData.get("mentorName")?.toString() || undefined,
-    interviewRole: formData.get("interviewRole")?.toString() || undefined,
-    skills: formData.get("skills")?.toString() || undefined,
-    level: formData.get("level"),
-    preferredTime: formData.get("preferredTime"),
-    note: formData.get("note")?.toString() || undefined,
-  });
-
-  if (hasSupabaseEnv) {
-    const supabase = await createClient();
-
-    if (supabase) {
-      const { error } = await supabase.from("mock_interview_bookings").insert({
-        full_name: parsed.fullName,
-        email: parsed.email,
-        mentor_name: parsed.mentorName ?? null,
-        interview_role: parsed.interviewRole ?? null,
-        skills: parsed.skills?.split(",").map((item) => item.trim()).filter(Boolean) ?? [],
-        topic: parsed.topic,
-        level: parsed.level,
-        preferred_time: parsed.preferredTime,
-        note: parsed.note ?? null,
-        status: "new",
-      });
-
-      if (error) {
-        await supabase.from("mentor_bookings").insert({
-          full_name: parsed.fullName,
-          email: parsed.email,
-          topic: parsed.topic,
-          level: parsed.level,
-          preferred_time: parsed.preferredTime,
-          note: parsed.note ?? null,
-          status: "new",
-        });
-      }
-    }
-  }
+  await callApi("/api/mentor-bookings", formData);
 
   revalidatePath("/mentor-booking");
   redirect("/mentor-booking?booking=sent");
 }
 
 export async function createBlogPostAction(formData: FormData) {
-  await requireAdmin();
-
-  const parsed = blogPostSchema.parse({
-    title: formData.get("title"),
-    slug: formData.get("slug"),
-    excerpt: formData.get("excerpt"),
-    category: formData.get("category"),
-    tags: formData.get("tags")?.toString() || "",
-    readTime: formData.get("readTime"),
-    locale: formData.get("locale"),
-    content: formData.get("content"),
-    published: formData.get("published") === "on",
-  });
-
-  if (hasSupabaseEnv) {
-    const supabase = await createClient();
-    if (!supabase) {
-      redirect("/login");
-    }
-
-    await supabase.from("blog_posts").upsert(
-      {
-        title: parsed.title,
-        slug: parsed.slug,
-        excerpt: parsed.excerpt,
-        category: parsed.category,
-        tags: parsed.tags?.split(",").map((item) => item.trim()).filter(Boolean) ?? [],
-        read_time: parsed.readTime,
-        locale: parsed.locale,
-        content_md: parsed.content,
-        published: parsed.published,
-        published_at: new Date().toISOString(),
-      },
-      { onConflict: "slug,locale" },
-    );
-  }
+  const slug = formValue(formData, "slug");
+  await callAdminApiOrToast("/api/admin/blog-posts", formData, "/admin/blog");
 
   revalidatePath("/blog");
-  revalidatePath(`/blog/${parsed.slug}`);
+  revalidatePath(`/blog/${slug}`);
   revalidatePath("/admin/blog");
+  redirectWithToast("/admin/blog", "blog-saved");
+}
+
+export async function upsertLandingBlockAction(formData: FormData) {
+  await callAdminApiOrToast("/api/admin/landing-blocks", formData, "/admin/landing");
+
+  revalidatePath("/");
+  revalidatePath("/admin/landing");
+  redirectWithToast("/admin/landing", "landing-saved");
 }
 
 export async function createInterviewQuestionAction(formData: FormData) {
-  await requireAdmin();
-
-  const parsed = interviewQuestionSchema.parse({
-    category: formData.get("category"),
-    level: formData.get("level"),
-    role: formData.get("role")?.toString() || "",
-    skills: formData.get("skills")?.toString() || "",
-    question: formData.get("question"),
-    prompt: formData.get("prompt"),
-    answer: formData.get("answer"),
-    checklist: formData.get("checklist"),
-    locale: formData.get("locale"),
-    published: formData.get("published") === "on",
-  });
-
-  if (hasSupabaseEnv) {
-    const supabase = await createClient();
-    if (!supabase) {
-      redirect("/login");
-    }
-
-    await supabase.from("interview_questions").insert({
-      category: parsed.category,
-      level: parsed.level,
-      role: parsed.role || null,
-      skills: parsed.skills?.split(",").map((item) => item.trim()).filter(Boolean) ?? [],
-      question: parsed.question,
-      prompt_md: parsed.prompt,
-      answer_md: parsed.answer,
-      checklist_md: parsed.checklist,
-      locale: parsed.locale,
-      published: parsed.published,
-    });
-  }
+  await callAdminApiOrToast("/api/admin/interview-questions", formData, "/admin/interviews");
 
   revalidatePath("/interview-practice");
   revalidatePath("/admin/interviews");
+  redirectWithToast("/admin/interviews", "interview-created");
 }
 
 export async function completeLessonAction(formData: FormData) {
-  const parsed = completeLessonSchema.parse({
-    courseSlug: formData.get("courseSlug"),
-    lessonSlug: formData.get("lessonSlug"),
-  });
+  const courseSlug = formValue(formData, "courseSlug");
+  await callApi("/api/lesson-progress", formData);
 
-  const { course, lesson } = await getLesson(parsed.courseSlug, parsed.lessonSlug);
-
-  if (hasSupabaseEnv && course && lesson) {
-    const supabase = await createClient();
-    if (!supabase) {
-      return;
-    }
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      redirect("/login");
-    }
-
-    await supabase.from("lesson_progress").upsert(
-      {
-        user_id: user.id,
-        lesson_id: lesson.id,
-        completed: true,
-        completed_at: new Date().toISOString(),
-      },
-      { onConflict: "user_id,lesson_id" },
-    );
-
-    const lessonIds = course.modules.flatMap((item) => item.lessons.map((courseLesson) => courseLesson.id));
-    const { data: completedRows } =
-      lessonIds.length > 0
-        ? await supabase
-            .from("lesson_progress")
-            .select("lesson_id")
-            .eq("user_id", user.id)
-            .eq("completed", true)
-            .in("lesson_id", lessonIds)
-        : { data: [] };
-    const progressPercent =
-      lessonIds.length === 0
-        ? 0
-        : Math.round(((completedRows?.length ?? 0) / lessonIds.length) * 100);
-
-    await supabase.from("enrollments").upsert(
-      {
-        user_id: user.id,
-        course_id: course.id,
-        status: progressPercent >= 100 ? "completed" : "active",
-        progress_percent: progressPercent,
-        completed_at: progressPercent >= 100 ? new Date().toISOString() : null,
-      },
-      { onConflict: "user_id,course_id" },
-    );
-
-    if (progressPercent >= 100) {
-      await maybeIssueCertificate(user.id, course.id);
-    }
-  }
-
-  revalidatePath(`/learn/${parsed.courseSlug}`);
+  revalidatePath(`/learn/${courseSlug}`);
 }
 
 export async function submitQuizAction(formData: FormData) {
-  const parsed = quizSchema.parse({
-    assessmentId: formData.get("assessmentId"),
-    score: formData.get("score"),
-    passed: formData.get("passed"),
-  });
-
-  if (hasSupabaseEnv) {
-    const supabase = await createClient();
-    if (!supabase) {
-      return;
-    }
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (user) {
-      await supabase.from("submissions").insert({
-        user_id: user.id,
-        assessment_id: parsed.assessmentId,
-        score: parsed.score,
-        passed: parsed.passed,
-        answers: Object.fromEntries(formData.entries()),
-      });
-    }
-  }
+  await callApi("/api/submissions/quiz", formData);
 
   revalidatePath("/learn");
 }
 
 export async function submitCodeAction(formData: FormData) {
-  const parsed = codeSchema.parse({
-    assessmentId: formData.get("assessmentId"),
-    score: formData.get("score"),
-    passed: formData.get("passed"),
-    code: formData.get("code"),
-    results: formData.get("results"),
-  });
-
-  if (hasSupabaseEnv) {
-    const supabase = await createClient();
-    if (!supabase) {
-      return;
-    }
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (user) {
-      await supabase.from("submissions").insert({
-        user_id: user.id,
-        assessment_id: parsed.assessmentId,
-        score: parsed.score,
-        passed: parsed.passed,
-        code: parsed.code,
-        test_results: JSON.parse(parsed.results) as unknown,
-      });
-    }
-  }
+  await callApi("/api/submissions/code", formData);
 
   revalidatePath("/learn");
 }
 
 export async function updateProfileAction(formData: FormData) {
-  const profile = await requireUser();
-  const parsed = profileSchema.parse({
-    fullName: formData.get("fullName"),
-    avatarUrl: formData.get("avatarUrl") ?? "",
-  });
-
-  if (hasSupabaseEnv) {
-    const supabase = await createClient();
-    if (!supabase) {
-      redirect("/login");
-    }
-
-    await supabase.auth.updateUser({
-      data: {
-        avatar_url: parsed.avatarUrl,
-        full_name: parsed.fullName,
-      },
-    });
-
-    await supabase
-      .from("profiles")
-      .update({
-        avatar_url: parsed.avatarUrl,
-        full_name: parsed.fullName,
-      })
-      .eq("id", profile.id);
-  }
+  await callApi("/api/profile", formData, { method: "PATCH" });
 
   revalidatePath("/profile");
   revalidatePath("/login");
@@ -549,51 +322,11 @@ export async function updateProfileAction(formData: FormData) {
 }
 
 export async function linkGoogleAccountAction() {
-  await requireUser();
+  const payload = await callApi("/api/account/link-google", undefined, { method: "POST" });
 
-  if (!hasSupabaseEnv) {
-    redirect("/profile?account=demo");
-  }
-
-  const supabase = await createClient();
-  if (!supabase) {
-    redirect("/login");
-  }
-
-  const headerStore = await headers();
-  const origin = headerStore.get("origin") ?? process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-  const { data, error } = await supabase.auth.linkIdentity({
-    provider: "google",
-    options: {
-      redirectTo: `${origin}/auth/callback?next=/profile`,
-    },
-  });
-
-  if (error || !data.url) {
+  if (!payload.url) {
     redirect("/profile?account=error");
   }
 
-  redirect(data.url);
-}
-
-async function maybeIssueCertificate(userId: string, courseId: string) {
-  const supabase = await createClient();
-  if (!supabase) {
-    return;
-  }
-
-  const certificateNo = `TECH-${new Date().getFullYear()}-${crypto
-    .randomUUID()
-    .slice(0, 8)
-    .toUpperCase()}`;
-
-  await supabase.from("certificates").upsert(
-    {
-      user_id: userId,
-      course_id: courseId,
-      certificate_no: certificateNo,
-      issued_at: new Date().toISOString(),
-    },
-    { onConflict: "user_id,course_id" },
-  );
+  redirect(payload.url);
 }

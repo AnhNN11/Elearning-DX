@@ -18,6 +18,7 @@ export default async function ProfilePage({
   const profile = await requireUser();
   const identities = await getAccountIdentities();
   const dateLocale = locale === "vi" ? "vi-VN" : "en-US";
+  const roleLabel = profile.roles.join(", ") || profile.role;
 
   return (
     <main className="min-h-screen bg-background">
@@ -29,7 +30,7 @@ export default async function ProfilePage({
           title={profile.fullName}
         />
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
-          <StatCard label={dict.profile.role} value={profile.role === "admin" ? "Admin" : dict.profile.student} />
+          <StatCard label={dict.profile.role} value={roleLabel} />
           <StatCard label={dict.profile.email} value={profile.email ?? dict.profile.demo} />
           <StatCard label={dict.profile.status} value={dict.profile.active} />
         </div>
@@ -40,7 +41,7 @@ export default async function ProfilePage({
             </p>
             <div className="mt-4 space-y-3 text-base leading-7 text-foreground">
               <p>
-                <Highlighter>{profile.role === "admin" ? "Admin" : dict.profile.student}</Highlighter>{" "}
+                <Highlighter>{roleLabel}</Highlighter>{" "}
                 {dict.profile.highlightRole}
               </p>
               <p>

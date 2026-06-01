@@ -51,6 +51,7 @@ export default async function BlogPage() {
             <div className="p-6 sm:p-8">
               <div className="flex flex-wrap gap-2">
                 <Badge variant="secondary">{featuredPost.readTime}</Badge>
+                <Badge>{featuredPost.mentorName}</Badge>
                 <Badge variant="outline">
                   {new Date(featuredPost.publishedAt).toLocaleDateString(dateLocale)}
                 </Badge>
@@ -60,6 +61,9 @@ export default async function BlogPage() {
               </h2>
               <p className="mt-5 max-w-2xl text-base leading-8 text-muted-foreground">
                 {featuredPost.excerpt}
+              </p>
+              <p className="mt-4 text-sm font-black uppercase text-primary">
+                {featuredPost.authorName}{featuredPost.authorRole ? ` · ${featuredPost.authorRole}` : ""}
               </p>
               <div className="mt-6 flex flex-wrap gap-2">
                 {featuredPost.tags.map((tag) => (

@@ -1,18 +1,12 @@
 import { redirect } from "next/navigation";
+import { createOrm } from "./orm";
 import { createClient } from "./supabase/server";
 import { hasSupabaseEnv } from "./supabase/config";
 import type { AccountIdentity, Profile } from "./types";
 
-export const demoProfile: Profile = {
-  id: "demo-admin",
-  fullName: "Nguyễn Nhật Anh",
-  email: "admin@techlearn.local",
-  role: "admin",
-};
-
 export async function getCurrentProfile(): Promise<Profile | null> {
   if (!hasSupabaseEnv) {
-    return demoProfile;
+    return null;
   }
 
   const supabase = await createClient();
@@ -28,19 +22,8 @@ export async function getCurrentProfile(): Promise<Profile | null> {
     return null;
   }
 
-  const { data } = await supabase
-    .from("profiles")
-    .select("id, full_name, avatar_url, role")
-    .eq("id", user.id)
-    .single();
-
-  return {
-    id: user.id,
-    fullName: data?.full_name ?? user.email ?? "Learner",
-    email: user.email,
-    avatarUrl: data?.avatar_url ?? undefined,
-    role: data?.role === "admin" ? "admin" : "student",
-  };
+  const orm = await createOrm(supabase);
+  return orm ? orm.users.profileForAuthUser(user) : null;
 }
 
 export async function requireUser() {
@@ -54,10 +37,14 @@ export async function requireUser() {
 }
 
 export async function requireAdmin() {
-  const profile = await requireUser();
+  const profile = await getCurrentProfile();
 
-  if (profile.role !== "admin") {
-    redirect("/learn");
+  if (!profile) {
+    redirect("/admin/login");
+  }
+
+  if (profile.role !== "admin" && !profile.roles.includes("admin")) {
+    redirect("/admin/login?error=not-admin");
   }
 
   return profile;
@@ -65,14 +52,7 @@ export async function requireAdmin() {
 
 export async function getAccountIdentities(): Promise<AccountIdentity[]> {
   if (!hasSupabaseEnv) {
-    return [
-      {
-        id: "demo-email",
-        provider: "email",
-        email: demoProfile.email,
-        createdAt: new Date(2026, 0, 12).toISOString(),
-      },
-    ];
+    return [];
   }
 
   const supabase = await createClient();

@@ -5,12 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { createBlogPostAction } from "@/lib/actions";
-import { getBlogPosts } from "@/lib/content";
+import { getBlogPosts, mentors } from "@/lib/content";
 import { getLocale } from "@/lib/i18n/server";
 
 export default async function AdminBlogPage() {
   const locale = await getLocale();
-  const posts = await getBlogPosts(locale);
+  const posts = await getBlogPosts(locale, true);
 
   return (
     <AdminShell>
@@ -29,8 +29,13 @@ export default async function AdminBlogPage() {
                 <div className="flex flex-wrap gap-2">
                   <Badge>{post.category}</Badge>
                   <Badge variant="outline">{post.readTime}</Badge>
+                  <Badge variant="secondary">{post.mentorName}</Badge>
+                  {post.sourceFileName && <Badge variant="outline">.md: {post.sourceFileName}</Badge>}
                 </div>
                 <h2 className="mt-3 text-xl font-black text-foreground">{post.title}</h2>
+                <p className="mt-1 text-xs font-black uppercase text-primary">
+                  {post.authorName}{post.authorRole ? ` · ${post.authorRole}` : ""}
+                </p>
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">{post.excerpt}</p>
               </div>
             ))}
@@ -48,12 +53,33 @@ export default async function AdminBlogPage() {
               <Input name="excerpt" placeholder="Mô tả ngắn" required />
               <Input name="category" placeholder="Engineering / Interview" required />
               <Input name="tags" placeholder="nextjs, supabase, interview" />
-              <Input name="readTime" placeholder="6 phút" required />
+              <Input name="readTime" placeholder="6 phút (để trống sẽ tự tính từ Markdown)" />
+              <Input name="authorName" defaultValue={mentors[0]?.name} placeholder="Tên người viết hiển thị" required />
+              <Input name="authorRole" placeholder="Role người viết: Senior Mentor / AI Product Lead..." />
+              <select className="w-full rounded-base border-2 border-border bg-background px-3 py-2 font-bold" name="mentorName" defaultValue={mentors[0]?.name}>
+                {mentors.map((mentor) => (
+                  <option key={mentor.name} value={mentor.name}>
+                    {mentor.name} · {mentor.role}
+                  </option>
+                ))}
+              </select>
               <select className="w-full rounded-base border-2 border-border bg-background px-3 py-2 font-bold" name="locale" defaultValue={locale}>
                 <option value="vi">vi</option>
                 <option value="en">en</option>
               </select>
-              <MarkdownEditor name="content" placeholder="Nội dung bài viết bằng Markdown" required />
+              <div>
+                <label className="text-sm font-black text-foreground" htmlFor="markdown-file">
+                  File Markdown nguồn
+                </label>
+                <Input
+                  accept=".md,.markdown,text/markdown,text/plain"
+                  className="mt-2"
+                  id="markdown-file"
+                  name="markdownFile"
+                  type="file"
+                />
+              </div>
+              <MarkdownEditor name="content" placeholder="Hoặc nhập nội dung bài viết bằng Markdown" />
               <label className="flex items-center gap-2 text-sm font-black">
                 <input name="published" type="checkbox" defaultChecked />
                 Published

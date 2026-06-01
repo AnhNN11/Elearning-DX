@@ -9,7 +9,7 @@ import { ButtonLink, SectionHeader } from "@/components/ui";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getBlogPosts, getInterviewQuestions, mentors } from "@/lib/content";
+import { getBlogPosts, getInterviewQuestions, getLandingBlocks, mentors } from "@/lib/content";
 import { getCourses } from "@/lib/data";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import { getLocale } from "@/lib/i18n/server";
@@ -19,8 +19,14 @@ export default async function HomePage() {
   const dict = getDictionary(locale);
   const blogPosts = await getBlogPosts(locale);
   const interviewQuestions = await getInterviewQuestions(locale);
+  const landingBlocks = await getLandingBlocks(locale);
   const courses = await getCourses();
   const t = dict.home;
+  const heroBlock = landingBlocks.find((block) => block.key === "hero");
+  const dynamicBlocks = landingBlocks.filter((block) => block.key !== "hero");
+  const heroStats = heroBlock?.items.length
+    ? heroBlock.items.map((item) => [item.title, item.description ?? ""] as const)
+    : t.stats;
 
   return (
     <main className="min-h-screen bg-background">
@@ -39,26 +45,34 @@ export default async function HomePage() {
         <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[1.25fr_0.75fr] lg:py-20">
           <div className="relative z-10 dx-animate-in">
             <Badge className="border-background bg-background text-foreground" variant="outline">
-              {t.heroBadge}
+              {heroBlock?.eyebrow ?? t.heroBadge}
             </Badge>
             <h1 className="mt-6 max-w-4xl text-5xl font-black uppercase leading-[0.95] tracking-tight sm:text-7xl">
-              {t.heroTitleA}
-              <br />
-              <span className="inline-block bg-background px-3 text-foreground">
-                <TypingAnimation words={[...t.heroTypingWords]} />
-              </span>
+              {heroBlock?.title ? (
+                heroBlock.title
+              ) : (
+                <>
+                  {t.heroTitleA}
+                  <br />
+                  <span className="inline-block bg-background px-3 text-foreground">
+                    <TypingAnimation words={[...t.heroTypingWords]} />
+                  </span>
+                </>
+              )}
             </h1>
             <p className="mt-6 max-w-2xl text-lg font-medium leading-8 text-primary-foreground/90">
-              {t.heroDescription}
+              {heroBlock?.description ?? t.heroDescription}
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <ButtonLink href="/mentor-booking">{t.bookMentor}</ButtonLink>
-              <ButtonLink href="/interview-practice" variant="secondary">
-                {t.interviewPractice}
+              <ButtonLink href={heroBlock?.ctaHref ?? "/mentor-booking"}>
+                {heroBlock?.ctaLabel ?? t.bookMentor}
+              </ButtonLink>
+              <ButtonLink href={heroBlock?.secondaryCtaHref ?? "/interview-practice"} variant="secondary">
+                {heroBlock?.secondaryCtaLabel ?? t.interviewPractice}
               </ButtonLink>
             </div>
             <div className="mt-10 grid gap-3 border-t-2 border-dashed border-background/80 pt-6 sm:grid-cols-4">
-              {t.stats.map(([value, label]) => (
+              {heroStats.map(([value, label]) => (
                 <div key={label}>
                   <p className="text-3xl font-black">{value}</p>
                   <p className="text-sm font-bold uppercase text-primary-foreground/75">{label}</p>
@@ -68,15 +82,21 @@ export default async function HomePage() {
           </div>
 
           <div className="dx-card dx-animate-in-delay dx-float bg-background p-5 text-foreground">
-            <div className="dx-scan-line mb-5 overflow-hidden rounded-lg border-2 border-foreground bg-white p-4">
-              <Image
-                alt="DolphinX Studio logo"
-                className="h-auto w-full"
-                height={500}
-                priority
-                src="/brand/dolphinx-logo.jpg"
-                width={700}
-              />
+            <div
+              className="dx-scan-line mb-5 overflow-hidden rounded-lg border-2 border-foreground bg-white p-4"
+              style={heroBlock?.imageUrl ? { backgroundImage: `url(${heroBlock.imageUrl})`, backgroundPosition: "center", backgroundSize: "cover" } : undefined}
+            >
+              {!heroBlock?.imageUrl && (
+                <Image
+                  alt="DolphinX Studio logo"
+                  className="h-auto w-full"
+                  height={500}
+                  priority
+                  src="/brand/dolphinx-logo.png"
+                  width={700}
+                />
+              )}
+              {heroBlock?.imageUrl && <div className="h-72" />}
             </div>
             <p className="inline-flex bg-foreground px-3 py-1 text-xs font-black uppercase tracking-wide text-background">
               {t.ticketLabel}
@@ -93,6 +113,58 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+
+      {dynamicBlocks.length > 0 && (
+        <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
+          <div className="grid gap-5 lg:grid-cols-2">
+            {dynamicBlocks.map((block) => (
+              <Card className="dx-card overflow-hidden bg-card" key={block.id}>
+                {block.imageUrl && (
+                  <div
+                    className="h-56 border-b-2 border-border bg-secondary-background"
+                    style={{ backgroundImage: `url(${block.imageUrl})`, backgroundPosition: "center", backgroundSize: "cover" }}
+                  />
+                )}
+                <CardHeader>
+                  {block.eyebrow && <Badge className="w-fit">{block.eyebrow}</Badge>}
+                  <CardTitle className="text-3xl font-black uppercase leading-tight">{block.title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {block.description && (
+                    <p className="text-sm leading-7 text-muted-foreground">{block.description}</p>
+                  )}
+                  {block.items.length > 0 && (
+                    <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                      {block.items.map((item) => (
+                        <div className="rounded-base border-2 border-border bg-secondary-background p-4" key={item.title}>
+                          <p className="font-black text-foreground">{item.title}</p>
+                          {item.description && (
+                            <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.description}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {(block.ctaLabel || block.secondaryCtaLabel) && (
+                    <div className="mt-6 flex flex-wrap gap-3">
+                      {block.ctaLabel && block.ctaHref && (
+                        <Button asChild>
+                          <Link href={block.ctaHref}>{block.ctaLabel}</Link>
+                        </Button>
+                      )}
+                      {block.secondaryCtaLabel && block.secondaryCtaHref && (
+                        <Button asChild variant="outline">
+                          <Link href={block.secondaryCtaHref}>{block.secondaryCtaLabel}</Link>
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
         <div className="mb-10 flex flex-wrap items-end justify-between gap-4">

@@ -1,3 +1,4 @@
+import { notFound } from "next/navigation";
 import { AppHeader } from "@/components/app-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { getCertificate } from "@/lib/data";
@@ -14,6 +15,10 @@ export default async function CertificatePage({
   const dict = getDictionary(locale);
   const certificate = await getCertificate(id);
   const dateLocale = locale === "vi" ? "vi-VN" : "en-US";
+
+  if (!certificate) {
+    notFound();
+  }
 
   return (
     <main className="min-h-screen bg-background">

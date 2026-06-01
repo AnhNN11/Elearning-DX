@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Search, Sparkles, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
 import { cn } from "@/lib/utils";
@@ -25,6 +27,25 @@ export function GlobalSearch({
 }) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setOpen(true);
+        inputRef.current?.focus();
+      }
+
+      if (event.key === "Escape") {
+        setOpen(false);
+        inputRef.current?.blur();
+      }
+    }
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
 
   const results = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -39,39 +60,70 @@ export function GlobalSearch({
 
   return (
     <div className={cn("relative", className)}>
-      <Input
-        aria-label={copy.open}
-        className="h-9 bg-background"
-        onBlur={() => window.setTimeout(() => setOpen(false), 140)}
-        onChange={(event) => {
-          setQuery(event.target.value);
-          setOpen(true);
-        }}
-        onFocus={() => setOpen(true)}
-        placeholder={copy.globalPlaceholder}
-        value={query}
-      />
+      <div className="relative">
+        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          aria-label={copy.open}
+          className="h-11 bg-background pl-9 pr-16 shadow-shadow"
+          onBlur={() => window.setTimeout(() => setOpen(false), 140)}
+          onChange={(event) => {
+            setQuery(event.target.value);
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          placeholder={copy.globalPlaceholder}
+          ref={inputRef}
+          value={query}
+        />
+        <span className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 rounded-base border-2 border-border bg-secondary-background px-2 py-0.5 text-[10px] font-heading text-muted-foreground sm:inline">
+          Ctrl K
+        </span>
+      </div>
       {open && (
-        <div className="absolute right-0 top-12 z-50 w-[min(420px,calc(100vw-2rem))] rounded-base border-2 border-border bg-background p-2 shadow-shadow">
-          {results.length ? (
-            <div className="space-y-2">
-              {results.map((item) => (
-                <Link
-                  className="block rounded-base border-2 border-transparent p-3 transition hover:border-border hover:bg-secondary"
-                  href={item.href}
-                  key={`${item.type}-${item.href}`}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="line-clamp-1 text-sm font-heading text-foreground">{item.label}</span>
-                    <Badge variant="outline">{copy.types[item.type]}</Badge>
-                  </div>
-                </Link>
-              ))}
+        <div className="absolute left-0 right-0 top-14 z-50 overflow-hidden rounded-base border-2 border-border bg-background shadow-shadow">
+          <div className="flex items-center justify-between border-b-2 border-border bg-secondary px-3 py-2">
+            <div className="flex items-center gap-2 text-xs font-heading uppercase text-foreground">
+              <Sparkles className="size-4" />
+              {copy.open}
             </div>
-          ) : (
-            <p className="p-3 text-sm font-heading text-muted-foreground">{copy.noResults}</p>
-          )}
-          <Link className="mt-2 block border-t-2 border-dashed border-border pt-2 text-sm font-heading text-primary" href="/courses">
+            {query && (
+              <Button
+                aria-label="Xóa tìm kiếm"
+                className="size-7 border-transparent bg-transparent p-0 shadow-none hover:translate-x-0 hover:translate-y-0"
+                onClick={() => setQuery("")}
+                type="button"
+                variant="ghost"
+              >
+                <X className="size-4" />
+              </Button>
+            )}
+          </div>
+          <div className="max-h-[min(28rem,calc(100vh-7rem))] overflow-y-auto p-2">
+            {results.length ? (
+              <div className="space-y-1">
+                {results.map((item, index) => (
+                  <Link
+                    className="block rounded-base border-2 border-transparent p-3 transition hover:border-border hover:bg-secondary"
+                    href={item.href}
+                    key={`${item.type}-${item.href}-${item.label}-${index}`}
+                    onClick={() => setOpen(false)}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <span className="line-clamp-2 text-sm font-heading text-foreground">{item.label}</span>
+                      <Badge className="shrink-0" variant="outline">{copy.types[item.type]}</Badge>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <p className="p-3 text-sm font-heading text-muted-foreground">{copy.noResults}</p>
+            )}
+          </div>
+          <Link
+            className="block border-t-2 border-dashed border-border bg-secondary-background px-4 py-3 text-sm font-heading text-primary"
+            href="/courses"
+            onClick={() => setOpen(false)}
+          >
             {copy.viewAllCourses}
           </Link>
         </div>

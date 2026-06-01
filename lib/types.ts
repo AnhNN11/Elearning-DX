@@ -1,4 +1,4 @@
-export type Role = "student" | "admin";
+export type Role = string;
 
 export type Level = "Cơ bản" | "Trung cấp" | "Nâng cao";
 
@@ -10,6 +10,7 @@ export type Profile = {
   email?: string;
   avatarUrl?: string;
   role: Role;
+  roles: Role[];
 };
 
 export type AccountIdentity = {
@@ -77,8 +78,23 @@ export type Course = {
   durationHours: number;
   published: boolean;
   accent: string;
+  thumbnailUrl?: string;
   outcomes: string[];
   modules: CourseModule[];
+  assets: CourseAsset[];
+};
+
+export type CourseAsset = {
+  id: string;
+  courseId: string;
+  title: string;
+  kind: "banner" | "document" | "source" | "slide" | "resource";
+  storageBucket: string;
+  storagePath: string;
+  publicUrl: string;
+  mimeType?: string;
+  fileSize?: number;
+  createdAt: string;
 };
 
 export type Enrollment = {
@@ -97,6 +113,42 @@ export type Certificate = {
   issuedAt: string;
 };
 
+export type AdminUser = {
+  id: string;
+  fullName: string;
+  email: string;
+  role: Role;
+  roles: Role[];
+  status: "active" | "disabled";
+  createdAt: string;
+  enrollmentCount: number;
+  completedCourses: number;
+  averageProgress: number;
+};
+
+export type AdminRole = {
+  id: string;
+  slug: Role;
+  name: string;
+  description?: string;
+  isSystem: boolean;
+  userCount: number;
+  createdAt: string;
+};
+
+export type AdminDashboardMetrics = {
+  courses: number;
+  publishedCourses: number;
+  lessons: number;
+  users: number;
+  activeEnrollments: number;
+  certificates: number;
+  bookings: number;
+  blogPosts: number;
+  interviewQuestions: number;
+  submissions: number;
+};
+
 export type MentorBooking = {
   id: string;
   fullName: string;
@@ -113,4 +165,27 @@ export type SubmissionResult = {
   score: number;
   passed: boolean;
   message: string;
+};
+
+export type LandingBlockItem = {
+  title: string;
+  description?: string;
+};
+
+export type LandingBlock = {
+  id: string;
+  key: string;
+  locale: "vi" | "en";
+  eyebrow?: string;
+  title: string;
+  description?: string;
+  ctaLabel?: string;
+  ctaHref?: string;
+  secondaryCtaLabel?: string;
+  secondaryCtaHref?: string;
+  imageUrl?: string;
+  items: LandingBlockItem[];
+  published: boolean;
+  position: number;
+  updatedAt: string;
 };

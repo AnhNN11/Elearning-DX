@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { enrollCourseAction } from "@/lib/actions";
-import { getCourseBanner } from "@/lib/course-banners";
 import { getCourse, getCourseLessonCount } from "@/lib/data";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import { getLocale } from "@/lib/i18n/server";
@@ -24,7 +23,7 @@ export default async function CourseDetailPage({
   if (!course) {
     notFound();
   }
-  const banner = getCourseBanner(course.slug);
+  const resources = course.assets.filter((asset) => asset.kind !== "banner");
 
   return (
     <main className="min-h-screen bg-background">
@@ -75,18 +74,47 @@ export default async function CourseDetailPage({
               </Card>
             ))}
           </div>
+          {resources.length > 0 && (
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle className="text-xl font-black">Tài liệu khóa học</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {resources.map((asset) => (
+                    <a
+                      className="rounded-base border-2 border-border bg-secondary-background p-4 text-sm font-bold text-foreground transition hover:-translate-y-0.5 hover:shadow-shadow"
+                      href={asset.publicUrl}
+                      key={asset.id}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      <span className="block text-primary">{asset.kind}</span>
+                      <span className="mt-1 block">{asset.title}</span>
+                    </a>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
         <Card className="h-fit lg:sticky lg:top-24">
           <CardContent>
           <div className="relative h-44 overflow-hidden rounded-base border-2 border-border bg-muted">
-            <Image
-              alt={`${course.title} banner`}
-              className="h-full w-full object-cover"
-              height={360}
-              priority
-              src={banner}
-              width={640}
-            />
+            {course.thumbnailUrl ? (
+              <Image
+                alt={`${course.title} banner`}
+                className="h-full w-full object-cover"
+                height={360}
+                priority
+                src={course.thumbnailUrl}
+                width={640}
+              />
+            ) : (
+              <div className="grid h-full place-items-center bg-secondary px-6 text-center text-xl font-black uppercase text-foreground">
+                {course.title}
+              </div>
+            )}
           </div>
           <div className="mt-5 grid grid-cols-2 gap-3 text-center">
             <div className="bg-muted rounded-md p-3">
@@ -107,7 +135,7 @@ export default async function CourseDetailPage({
           </form>
           <div className="mt-3">
             <ButtonLink href={`/learn/${course.slug}`} variant="secondary">
-              {dict.courses.demoLesson}
+              {dict.courses.continueButton}
             </ButtonLink>
           </div>
           </CardContent>

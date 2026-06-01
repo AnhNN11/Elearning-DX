@@ -3,14 +3,14 @@ import { AdminShell } from "@/components/admin-shell";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { getDemoCertificates } from "@/lib/data";
+import { getCertificates } from "@/lib/data";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import { getLocale } from "@/lib/i18n/server";
 
 export default async function AdminCertificatesPage() {
   const locale = await getLocale();
   const dict = getDictionary(locale);
-  const certificates = await getDemoCertificates();
+  const certificates = await getCertificates();
 
   return (
     <AdminShell>
@@ -33,7 +33,7 @@ export default async function AdminCertificatesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {certificates.map((certificate) => (
+              {certificates.length ? certificates.map((certificate) => (
                 <TableRow key={certificate.id}>
                   <TableCell className="font-black text-primary">{certificate.certificateNo}</TableCell>
                   <TableCell className="font-bold">{certificate.courseTitle}</TableCell>
@@ -44,7 +44,13 @@ export default async function AdminCertificatesPage() {
                     </Button>
                   </TableCell>
                 </TableRow>
-              ))}
+              )) : (
+                <TableRow>
+                  <TableCell className="text-muted-foreground font-bold" colSpan={4}>
+                    Chưa có chứng chỉ thật trong Supabase.
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>

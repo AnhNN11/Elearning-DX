@@ -44,9 +44,9 @@ export async function AppHeader() {
 
   return (
     <header className="sticky top-0 z-40 border-b-2 border-border bg-secondary-background text-foreground shadow-shadow">
-      <div className="mx-auto flex min-h-16 max-w-7xl items-center gap-4 px-4 py-2 sm:px-6">
+      <div className="mx-auto flex min-h-16 max-w-7xl items-center gap-3 px-4 py-2 sm:px-6">
         <Logo />
-        <nav className="hidden min-w-0 flex-1 items-center gap-3 text-xs font-heading uppercase tracking-wide text-foreground lg:flex">
+        <nav className="hidden min-w-0 shrink-0 items-center gap-3 text-xs font-heading uppercase tracking-wide text-foreground xl:flex">
           {nav.map((item) => (
             <Link
               className="group relative whitespace-nowrap py-2 transition duration-200 hover:-translate-y-0.5 hover:text-primary"
@@ -58,13 +58,16 @@ export async function AppHeader() {
             </Link>
           ))}
         </nav>
-        <GlobalSearch className="hidden w-56 2xl:block" copy={dict.search} items={searchItems} />
+        <GlobalSearch className="hidden min-w-0 flex-1 md:block" copy={dict.search} items={searchItems} />
         <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
           <LanguageSwitcher locale={locale} tone="light" />
           <ButtonLink className="h-10 px-3 text-xs sm:px-5 sm:text-sm" href="/login">
             {dict.nav.start}
           </ButtonLink>
         </div>
+      </div>
+      <div className="mx-auto max-w-7xl px-4 pb-3 sm:px-6 md:hidden">
+        <GlobalSearch copy={dict.search} items={searchItems} />
       </div>
     </header>
   );

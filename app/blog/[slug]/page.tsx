@@ -31,11 +31,20 @@ export default async function BlogDetailPage({
         <div className="mb-6 flex flex-wrap gap-2">
           <Badge>{post.category}</Badge>
           <Badge variant="outline">{post.readTime}</Badge>
+          <Badge>{post.mentorName}</Badge>
           <Badge variant="secondary">{new Date(post.publishedAt).toLocaleDateString(locale === "vi" ? "vi-VN" : "en-US")}</Badge>
         </div>
         <h1 className="text-4xl font-black uppercase leading-tight tracking-tight text-foreground sm:text-6xl">
           {post.title}
         </h1>
+        <div className="mt-5 rounded-base border-2 border-border bg-secondary-background p-4">
+          <p className="text-sm font-black uppercase text-primary">Mentor viết bài</p>
+          <p className="mt-1 text-lg font-heading text-foreground">{post.authorName}</p>
+          {post.authorRole && <p className="text-sm text-muted-foreground">{post.authorRole}</p>}
+          {post.sourceFileName && (
+            <p className="mt-2 text-xs font-bold text-muted-foreground">Nguồn Markdown: {post.sourceFileName}</p>
+          )}
+        </div>
         <Card className="dx-card mt-8">
           <CardContent>
             <MarkdownViewer content={post.content.join("\n\n")} />

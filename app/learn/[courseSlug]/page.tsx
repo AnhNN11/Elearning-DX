@@ -5,7 +5,7 @@ import { Pill, SectionHeader } from "@/components/ui";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { getCourse, getCourseLessonCount } from "@/lib/data";
+import { getCourse, getCourseLessonCount, getUserEnrollments } from "@/lib/data";
 import { requireUser } from "@/lib/auth";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import { getLocale } from "@/lib/i18n/server";
@@ -15,7 +15,7 @@ export default async function CourseLearnPage({
 }: {
   params: Promise<{ courseSlug: string }>;
 }) {
-  await requireUser();
+  const profile = await requireUser();
   const { courseSlug } = await params;
   const locale = await getLocale();
   const dict = getDictionary(locale);
@@ -24,6 +24,10 @@ export default async function CourseLearnPage({
   if (!course) {
     notFound();
   }
+  const enrollments = await getUserEnrollments(profile.id);
+  const enrollment = enrollments.find((item) => item.courseId === course.id);
+  const progress = enrollment?.progressPercent ?? 0;
+  const resources = course.assets.filter((asset) => asset.kind !== "banner");
 
   return (
     <main className="min-h-screen bg-background">
@@ -66,16 +70,39 @@ export default async function CourseLearnPage({
               </Card>
             ))}
           </div>
-          <Card className="h-fit lg:sticky lg:top-24">
-            <CardContent>
-            <p className="text-sm font-black uppercase text-primary">{dict.courses.progress}</p>
-            <p className="mt-2 text-4xl font-black text-foreground">67%</p>
-            <Progress className="mt-4 h-3" value={67} />
-            <p className="text-muted-foreground mt-4 text-sm leading-6">
-              {dict.courses.progressNote}
-            </p>
-            </CardContent>
-          </Card>
+          <div className="space-y-4 lg:sticky lg:top-24 lg:h-fit">
+            <Card>
+              <CardContent>
+              <p className="text-sm font-black uppercase text-primary">{dict.courses.progress}</p>
+              <p className="mt-2 text-4xl font-black text-foreground">{progress}%</p>
+              <Progress className="mt-4 h-3" value={progress} />
+              <p className="text-muted-foreground mt-4 text-sm leading-6">
+                {dict.courses.progressNote}
+              </p>
+              </CardContent>
+            </Card>
+            {resources.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg font-black">Tài liệu môn học</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {resources.map((asset) => (
+                    <a
+                      className="block rounded-base border-2 border-border bg-secondary-background p-3 text-sm font-bold text-foreground transition hover:-translate-y-0.5 hover:shadow-shadow"
+                      href={asset.publicUrl}
+                      key={asset.id}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      <Badge variant="outline">{asset.kind}</Badge>
+                      <span className="mt-2 block">{asset.title}</span>
+                    </a>
+                  ))}
+                </CardContent>
+              </Card>
+            )}
+          </div>
         </div>
       </section>
     </main>

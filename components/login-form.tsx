@@ -11,7 +11,19 @@ import { Input } from "./ui/input";
 import { Label } from "./ui/label";
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 
-export function LoginForm({ className, copy }: { className?: string; copy: Dictionary["auth"] }) {
+export function LoginForm({
+  adminOnly = false,
+  allowSignUp = true,
+  className,
+  copy,
+  redirectTo = "/learn",
+}: {
+  adminOnly?: boolean;
+  allowSignUp?: boolean;
+  className?: string;
+  copy: Dictionary["auth"];
+  redirectTo?: string;
+}) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -27,18 +39,29 @@ export function LoginForm({ className, copy }: { className?: string; copy: Dicti
     }
 
     setLoading(true);
+    setMessage("");
+
     const response =
       mode === "signin"
         ? await supabase.auth.signInWithPassword({ email, password })
         : await supabase.auth.signUp({ email, password });
-    setLoading(false);
 
     if (response.error) {
+      setLoading(false);
       setMessage(response.error.message);
       return;
     }
 
-    router.push("/learn");
+    const allowed = await verifyAdminAccess();
+    if (!allowed) {
+      await supabase.auth.signOut();
+      setLoading(false);
+      setMessage("Tài khoản này không có quyền admin.");
+      return;
+    }
+
+    setLoading(false);
+    router.push(redirectTo);
     router.refresh();
   }
 
@@ -49,21 +72,46 @@ export function LoginForm({ className, copy }: { className?: string; copy: Dicti
       return;
     }
 
-    await supabase.auth.signInWithOAuth({
+    setLoading(true);
+    setMessage("");
+
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectTo)}`,
+        queryParams: {
+          prompt: "select_account",
+        },
       },
     });
+
+    if (error) {
+      setLoading(false);
+      setMessage(error.message);
+    }
+  }
+
+  async function verifyAdminAccess() {
+    if (!adminOnly) {
+      return true;
+    }
+
+    const profileResponse = await fetch("/api/me/profile", { cache: "no-store" });
+    const payload = await profileResponse.json().catch(() => null) as {
+      profile?: { role?: string; roles?: string[] };
+    } | null;
+    const roles = payload?.profile?.roles ?? [];
+
+    return profileResponse.ok && (payload?.profile?.role === "admin" || roles.includes("admin"));
   }
 
   return (
     <Card className={className}>
       <CardContent className="space-y-5">
         <Tabs onValueChange={(value) => setMode(value as "signin" | "signup")} value={mode}>
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className={`grid w-full ${allowSignUp ? "grid-cols-2" : "grid-cols-1"}`}>
             <TabsTrigger value="signin">{copy.signIn}</TabsTrigger>
-            <TabsTrigger value="signup">{copy.signUp}</TabsTrigger>
+            {allowSignUp && <TabsTrigger value="signup">{copy.signUp}</TabsTrigger>}
           </TabsList>
         </Tabs>
         <div className="mt-5 space-y-4">
@@ -90,7 +138,7 @@ export function LoginForm({ className, copy }: { className?: string; copy: Dicti
           </Button>
           <Button
             className="w-full"
-            disabled={!hasSupabaseEnv}
+            disabled={!hasSupabaseEnv || loading}
             onClick={signInWithGoogle}
             type="button"
             variant="outline"
@@ -101,7 +149,7 @@ export function LoginForm({ className, copy }: { className?: string; copy: Dicti
         {message && <p className="bg-secondary text-secondary-foreground mt-4 rounded-md p-3 text-sm">{message}</p>}
         {!hasSupabaseEnv && (
           <p className="text-muted-foreground mt-4 text-xs leading-5">
-            {copy.demoMode}
+            {copy.supabaseMissing}
           </p>
         )}
       </CardContent>

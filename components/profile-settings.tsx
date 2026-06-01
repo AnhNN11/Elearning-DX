@@ -80,7 +80,6 @@ export function ProfileSettings({
               {copy.linkGoogle}
             </Button>
           </form>
-          <p className="mt-4 text-xs leading-5 text-muted-foreground">{copy.demoAccountNote}</p>
         </CardContent>
       </Card>
     </div>

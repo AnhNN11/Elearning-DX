@@ -1,18 +1,13 @@
-import Link from "next/link";
 import { AppHeader } from "@/components/app-header";
 import { DotPattern } from "@/components/dot-pattern";
 import { LoginForm } from "@/components/login-form";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { getCurrentProfile } from "@/lib/auth";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import { getLocale } from "@/lib/i18n/server";
 
 export default async function LoginPage() {
   const locale = await getLocale();
   const dict = getDictionary(locale);
-  const profile = await getCurrentProfile();
 
   return (
     <main className="min-h-screen bg-background">
@@ -49,25 +44,7 @@ export default async function LoginPage() {
               </h1>
               <p className="mt-4 text-sm leading-7 text-muted-foreground">{dict.auth.description}</p>
             </div>
-            {profile ? (
-              <Card className="border-beam-card">
-                <CardContent className="space-y-4">
-                  <p className="text-sm font-heading uppercase text-primary">{dict.profile.alreadySignedIn}</p>
-                  <h2 className="text-2xl font-heading text-foreground">{profile.fullName}</h2>
-                  <p className="text-sm text-muted-foreground">{profile.email}</p>
-                  <div className="grid gap-3">
-                    <Button asChild>
-                      <Link href="/profile">{dict.profile.editProfile}</Link>
-                    </Button>
-                    <Button asChild variant="outline">
-                      <Link href="/learn">{dict.profile.goDashboard}</Link>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <LoginForm className="border-beam-card" copy={dict.auth} />
-            )}
+            <LoginForm className="border-beam-card" copy={dict.auth} />
           </div>
         </div>
       </section>

@@ -72,11 +72,14 @@ export function BlogExplorer({
               <div className="flex flex-wrap gap-2">
                 <Badge>{post.category}</Badge>
                 <Badge variant="outline">{post.readTime}</Badge>
-                <Badge variant="secondary">{post.publishedAt}</Badge>
+                <Badge variant="secondary">{post.mentorName}</Badge>
               </div>
               <CardTitle className="text-2xl font-black leading-tight">{post.title}</CardTitle>
             </CardHeader>
             <CardContent>
+              <p className="mb-2 text-xs font-black uppercase text-primary">
+                {post.authorName}{post.authorRole ? ` · ${post.authorRole}` : ""}
+              </p>
               <p className="text-muted-foreground text-sm leading-6">{post.excerpt}</p>
               <div className="mt-4 flex flex-wrap gap-2">
                 {post.tags.map((tag) => (
