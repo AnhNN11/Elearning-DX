@@ -1,0 +1,15 @@
+<svg width="1200" height="640" viewBox="0 0 1200 640" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="640" fill="#F8FBFF"/>
+  <rect x="0" y="0" width="1200" height="640" fill="#DFF7FF"/>
+  <circle cx="952" cy="142" r="230" fill="#13BCE7"/>
+  <circle cx="212" cy="512" r="190" fill="#FF4F5E" opacity=".72"/>
+  <path d="M640 92c168 0 304 86 304 192S808 476 640 476 336 390 336 284 472 92 640 92Z" fill="#FFFFFF" stroke="#061526" stroke-width="8"/>
+  <circle cx="536" cy="270" r="52" fill="#075BBB"/>
+  <circle cx="744" cy="270" r="52" fill="#075BBB"/>
+  <path d="M552 394c64 36 112 36 176 0" stroke="#061526" stroke-width="18" stroke-linecap="round"/>
+  <path d="M408 164 292 88M872 164l116-76M418 424l-116 78M862 424l116 78" stroke="#061526" stroke-width="12" stroke-linecap="round"/>
+  <rect x="92" y="96" width="312" height="120" rx="24" fill="#061526"/>
+  <text x="132" y="170" fill="#13BCE7" font-family="Arial, sans-serif" font-size="52" font-weight="900">AI LAB</text>
+  <rect x="776" y="454" width="310" height="86" rx="18" fill="#FFFFFF" stroke="#061526" stroke-width="8"/>
+  <text x="820" y="510" fill="#061526" font-family="Arial, sans-serif" font-size="34" font-weight="900">PROMPT + RAG</text>
+</svg>

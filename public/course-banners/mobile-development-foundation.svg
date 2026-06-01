@@ -1,0 +1,16 @@
+<svg width="1200" height="640" viewBox="0 0 1200 640" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="640" fill="#DFF7FF"/>
+  <circle cx="180" cy="156" r="180" fill="#13BCE7"/>
+  <circle cx="1030" cy="520" r="220" fill="#FF4F5E" opacity=".74"/>
+  <rect x="420" y="56" width="360" height="528" rx="54" fill="#061526"/>
+  <rect x="452" y="108" width="296" height="424" rx="30" fill="#F8FBFF"/>
+  <rect x="508" y="132" width="184" height="18" rx="9" fill="#061526"/>
+  <rect x="492" y="194" width="216" height="84" rx="18" fill="#075BBB"/>
+  <rect x="492" y="306" width="216" height="48" rx="14" fill="#DFF7FF" stroke="#061526" stroke-width="6"/>
+  <rect x="492" y="378" width="216" height="48" rx="14" fill="#DFF7FF" stroke="#061526" stroke-width="6"/>
+  <rect x="532" y="466" width="136" height="26" rx="13" fill="#13BCE7"/>
+  <text x="102" y="500" fill="#061526" font-family="Arial, sans-serif" font-size="58" font-weight="900">MOBILE</text>
+  <text x="820" y="186" fill="#061526" font-family="Arial, sans-serif" font-size="40" font-weight="900">OFFLINE</text>
+  <text x="820" y="242" fill="#061526" font-family="Arial, sans-serif" font-size="40" font-weight="900">STATE</text>
+  <text x="820" y="298" fill="#061526" font-family="Arial, sans-serif" font-size="40" font-weight="900">STORE</text>
+</svg>
