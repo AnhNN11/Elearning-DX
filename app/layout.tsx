@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import { AppFooter } from "@/components/app-footer";
 import { FirebaseAnalytics } from "@/components/firebase-analytics";
 import { FooterGate } from "@/components/footer-gate";
@@ -42,6 +43,7 @@ export default async function RootLayout({
           <AppFooter />
         </FooterGate>
         <FirebaseAnalytics />
+        <Analytics />
       </body>
     </html>
   );
