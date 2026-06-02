@@ -2,19 +2,19 @@ import Link from "next/link";
 import Image from "next/image";
 import { BookOpen, Filter, PlusCircle, Search, UploadCloud, Video } from "lucide-react";
 import { AdminShell } from "@/components/admin-shell";
+import { AdminCourseComposer } from "@/components/admin-course-composer";
 import { Pill } from "@/components/ui";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Textarea } from "@/components/ui/textarea";
 import { createCourseAction, updateCoursePublishAction } from "@/lib/actions";
 import { getCourseLessonCount, getCourses } from "@/lib/data";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import { getLocale } from "@/lib/i18n/server";
+import { markdownToPlainText } from "@/lib/markdown-text";
 
 export default async function AdminCoursesPage({
   searchParams,
@@ -109,8 +109,11 @@ export default async function AdminCoursesPage({
         </div>
       </Alert>
 
-      <div className="mt-8 grid gap-6 xl:grid-cols-[1fr_420px]">
-        <Card>
+      <div className="mt-8" id="create-course">
+        <AdminCourseComposer action={createCourseAction} />
+      </div>
+
+      <Card className="mt-8">
           <CardHeader className="gap-4">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <CardTitle>{dict.admin.courseList}</CardTitle>
@@ -176,7 +179,9 @@ export default async function AdminCoursesPage({
                         <Link className="font-heading text-foreground hover:text-primary" href={`/admin/courses/${course.id}`}>
                           {course.title}
                         </Link>
-                        <p className="mt-1 text-sm leading-5 text-muted-foreground">{course.description}</p>
+                        <p className="mt-1 line-clamp-2 text-sm leading-5 text-muted-foreground">
+                          {markdownToPlainText(course.description)}
+                        </p>
                         <p className="mt-2 text-xs font-heading text-primary">/{course.slug}</p>
                       </TableCell>
                       <TableCell>
@@ -218,61 +223,7 @@ export default async function AdminCoursesPage({
               </TableBody>
             </Table>
           </CardContent>
-        </Card>
-
-        <Card className="h-fit" id="create-course">
-          <CardHeader>
-            <CardTitle>Tạo nhanh khóa học</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form action={createCourseAction} className="grid gap-3">
-              <Input name="title" placeholder={dict.admin.courseName} required />
-              <Input name="slug" placeholder="slug-khoa-hoc" required />
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Input name="category" placeholder={dict.admin.category} required />
-                <Select name="level" defaultValue="Cơ bản">
-                  <SelectTrigger>
-                    <SelectValue placeholder={dict.admin.level} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Cơ bản">Cơ bản</SelectItem>
-                    <SelectItem value="Trung cấp">Trung cấp</SelectItem>
-                    <SelectItem value="Nâng cao">Nâng cao</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Input name="description" placeholder={dict.admin.description} required />
-              <div className="grid gap-3 sm:grid-cols-[1fr_88px]">
-                <Input name="durationHours" placeholder="Giờ" required step="0.5" type="number" />
-                <Input defaultValue="#075bbb" name="accent" placeholder="#075bbb" required type="color" />
-              </div>
-              <Textarea
-                className="min-h-24"
-                defaultValue={"Hoàn thành nội dung khóa học\nLàm bài kiểm tra\nNhận chứng chỉ"}
-                name="outcomes"
-                placeholder="Outcomes, mỗi dòng một mục"
-                required
-              />
-              <div>
-                <label className="text-sm font-heading text-foreground" htmlFor="course-banner">
-                  Banner Cloudinary
-                </label>
-                <Input
-                  accept="image/jpeg,image/png,image/webp,image/gif,image/svg+xml"
-                  className="mt-2"
-                  id="course-banner"
-                  name="banner"
-                  type="file"
-                />
-              </div>
-              <Button className="w-full" type="submit">
-                <PlusCircle className="size-4" />
-                {dict.admin.createCourse}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
+      </Card>
     </AdminShell>
   );
 }

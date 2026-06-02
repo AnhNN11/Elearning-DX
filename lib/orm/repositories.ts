@@ -8,6 +8,7 @@ import type {
   MentorBooking,
   Profile,
 } from "@/lib/types";
+import { supabasePublishableKey, supabaseUrl } from "@/lib/supabase/config";
 import {
   certificateSelect,
   courseGraphSelect,
@@ -69,6 +70,69 @@ function assertData<T>(data: T | null, error: unknown): T {
   return data;
 }
 
+function isMissingBlogMetadataColumnError(error: unknown) {
+  if (!error || typeof error !== "object" || !("message" in error)) {
+    return false;
+  }
+
+  const message = String(error.message);
+  return (
+    message.includes("blog_posts") &&
+    [
+      "author_name",
+      "author_role",
+      "mentor_name",
+      "source_file_name",
+      "cover_image_url",
+    ].some((column) => message.includes(column))
+  );
+}
+
+async function fetchBlogPostsFromRest(locale: "vi" | "en", includeDrafts: boolean) {
+  if (!supabaseUrl || !supabasePublishableKey) {
+    return [];
+  }
+
+  const url = new URL("/rest/v1/blog_posts", supabaseUrl);
+  url.searchParams.set(
+    "select",
+    "slug,locale,title,excerpt,category,tags,read_time,published_at,author_name,author_role,mentor_name,source_file_name,cover_image_url,content_md",
+  );
+  url.searchParams.set("locale", `eq.${locale}`);
+  url.searchParams.set("order", "published_at.desc");
+
+  if (!includeDrafts) {
+    url.searchParams.set("published", "eq.true");
+  }
+
+  let response = await fetch(url, {
+    cache: "no-store",
+    headers: {
+      apikey: supabasePublishableKey,
+      authorization: `Bearer ${supabasePublishableKey}`,
+    },
+  });
+
+  if (!response.ok) {
+    const legacyUrl = new URL(url);
+    legacyUrl.searchParams.set("select", "slug,locale,title,excerpt,category,tags,read_time,published_at,content_md");
+    response = await fetch(legacyUrl, {
+      cache: "no-store",
+      headers: {
+        apikey: supabasePublishableKey,
+        authorization: `Bearer ${supabasePublishableKey}`,
+      },
+    });
+
+    if (!response.ok) {
+      return [];
+    }
+  }
+
+  const rows = (await response.json().catch(() => [])) as BlogPostRow[];
+  return rows.map(mapBlogPost);
+}
+
 export class CoursesRepository {
   constructor(private readonly supabase: OrmClient) {}
 
@@ -119,6 +183,7 @@ export class CoursesRepository {
         category: input.category,
         level: input.level,
         description: input.description,
+        thumbnail_url: input.thumbnailUrl || null,
         duration_hours: input.durationHours,
         accent: input.accent,
         published: false,
@@ -132,20 +197,23 @@ export class CoursesRepository {
   }
 
   async update(courseId: string, input: CourseUpdateInput) {
-    const { error } = await this.supabase
-      .from("courses")
-      .update({
-        title: input.title,
-        slug: input.slug,
-        category: input.category,
-        level: input.level,
-        description: input.description,
-        duration_hours: input.durationHours,
-        outcomes: input.outcomes,
-        accent: input.accent,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", courseId);
+    const payload: Record<string, unknown> = {
+      title: input.title,
+      slug: input.slug,
+      category: input.category,
+      level: input.level,
+      description: input.description,
+      duration_hours: input.durationHours,
+      outcomes: input.outcomes,
+      accent: input.accent,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (input.thumbnailUrl !== undefined) {
+      payload.thumbnail_url = input.thumbnailUrl || null;
+    }
+
+    const { error } = await this.supabase.from("courses").update(payload).eq("id", courseId);
 
     if (error) {
       throw error;
@@ -745,51 +813,100 @@ export class ContentRepository {
   }
 
   async listBlogPosts(locale: "vi" | "en", includeDrafts = false): Promise<BlogPost[]> {
-    let query = this.supabase
-      .from("blog_posts")
-      .select("slug,title,excerpt,category,tags,read_time,published_at,author_name,author_role,mentor_name,source_file_name,content_md")
-      .eq("locale", locale)
-      .order("published_at", { ascending: false });
+    const selectWithCover =
+      "slug,locale,title,excerpt,category,tags,read_time,published_at,author_name,author_role,mentor_name,source_file_name,cover_image_url,content_md";
+    const legacySelect = "slug,locale,title,excerpt,category,tags,read_time,published_at,content_md";
+    const buildQuery = (select: string) => {
+      let query = this.supabase
+        .from("blog_posts")
+        .select(select)
+        .eq("locale", locale)
+        .order("published_at", { ascending: false });
 
-    if (!includeDrafts) {
-      query = query.eq("published", true);
+      if (!includeDrafts) {
+        query = query.eq("published", true);
+      }
+
+      return query;
+    };
+
+    let { data, error } = await buildQuery(selectWithCover);
+
+    if (isMissingBlogMetadataColumnError(error)) {
+      const legacyResult = await buildQuery(legacySelect);
+      data = legacyResult.data;
+      error = legacyResult.error;
     }
-
-    const { data, error } = await query;
 
     if (error || !data) {
-      return [];
+      return includeDrafts ? [] : fetchBlogPostsFromRest(locale, false);
     }
 
-    return (data as BlogPostRow[]).map(mapBlogPost);
+    if (!includeDrafts && data.length === 0) {
+      return fetchBlogPostsFromRest(locale, includeDrafts);
+    }
+
+    return (data as unknown as BlogPostRow[]).map(mapBlogPost);
   }
 
   async upsertBlogPost(input: BlogPostUpsertInput) {
-    const { data, error } = await this.supabase
+    const payload: Record<string, unknown> = {
+      title: input.title,
+      slug: input.slug,
+      excerpt: input.excerpt,
+      category: input.category,
+      tags: input.tags ?? [],
+      read_time: input.readTime,
+      locale: input.locale,
+      author_name: input.authorName,
+      author_role: input.authorRole || null,
+      mentor_name: input.mentorName,
+      source_file_name: input.sourceFileName || null,
+      content_md: input.content,
+      published: input.published,
+      published_at: new Date().toISOString(),
+      created_by: input.createdBy,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (input.coverImageUrl) {
+      payload.cover_image_url = input.coverImageUrl;
+    }
+
+    let { data, error } = await this.supabase
       .from("blog_posts")
-      .upsert(
-        {
-          title: input.title,
-          slug: input.slug,
-          excerpt: input.excerpt,
-          category: input.category,
-          tags: input.tags ?? [],
-          read_time: input.readTime,
-          locale: input.locale,
-          author_name: input.authorName,
-          author_role: input.authorRole || null,
-          mentor_name: input.mentorName,
-          source_file_name: input.sourceFileName || null,
-          content_md: input.content,
-          published: input.published,
-          published_at: new Date().toISOString(),
-          created_by: input.createdBy,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "slug,locale" },
-      )
+      .upsert(payload, { onConflict: "slug,locale" })
       .select("slug,locale")
       .single();
+
+    if (isMissingBlogMetadataColumnError(error)) {
+      console.warn(
+        "[blog_posts] Optional metadata columns are missing. Saving core blog content only. Run supabase/schema.sql blog_posts ALTER TABLE statements to persist author/cover metadata.",
+      );
+
+      const legacyPayload = {
+        title: input.title,
+        slug: input.slug,
+        excerpt: input.excerpt,
+        category: input.category,
+        tags: input.tags ?? [],
+        read_time: input.readTime,
+        locale: input.locale,
+        content_md: input.content,
+        published: input.published,
+        published_at: new Date().toISOString(),
+        created_by: input.createdBy,
+        updated_at: new Date().toISOString(),
+      };
+      const legacyResult = await this.supabase
+        .from("blog_posts")
+        .upsert(legacyPayload, { onConflict: "slug,locale" })
+        .select("slug,locale")
+        .single();
+
+      data = legacyResult.data;
+      error = legacyResult.error;
+    }
 
     return assertData(data, error);
   }

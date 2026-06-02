@@ -75,17 +75,19 @@ export async function uploadImageToCloudinary(
   file: File,
   {
     courseSlug,
+    folderName = "courses",
   }: {
     courseSlug: string;
+    folderName?: string;
   },
 ) {
   if (!file.type.startsWith("image/")) {
-    throw new Error("Cloudinary chỉ nhận file ảnh cho banner/thumbnail.");
+    throw new Error("Cloudinary chỉ nhận file ảnh.");
   }
 
   const config = getCloudinaryConfig();
   const timestamp = Math.round(Date.now() / 1000);
-  const folder = `${config.folder}/courses/${courseSlug}`;
+  const folder = `${config.folder}/${folderName}/${courseSlug}`;
   const publicId = `${sanitizePublicId(file.name)}-${crypto.randomUUID()}`;
   const params = {
     folder,

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -67,7 +68,19 @@ export function BlogExplorer({
       <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
         {filteredPosts.map((post) => (
           <Card className="dx-card group h-full overflow-hidden transition hover:-translate-y-1 hover:shadow-md" key={post.slug}>
-            <div className="h-2 bg-primary transition group-hover:bg-destructive" />
+            {post.coverImageUrl ? (
+              <div className="relative h-44 overflow-hidden border-b-2 border-border bg-secondary-background">
+                <Image
+                  alt={`${post.title} cover`}
+                  className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                  height={320}
+                  src={post.coverImageUrl}
+                  width={620}
+                />
+              </div>
+            ) : (
+              <div className="h-2 bg-primary transition group-hover:bg-destructive" />
+            )}
             <CardHeader>
               <div className="flex flex-wrap gap-2">
                 <Badge>{post.category}</Badge>

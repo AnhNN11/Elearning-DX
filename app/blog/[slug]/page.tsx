@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { AppHeader } from "@/components/app-header";
 import { MarkdownViewer } from "@/components/markdown-viewer";
@@ -37,6 +38,17 @@ export default async function BlogDetailPage({
         <h1 className="text-4xl font-black uppercase leading-tight tracking-tight text-foreground sm:text-6xl">
           {post.title}
         </h1>
+        {post.coverImageUrl && (
+          <div className="relative mt-8 h-72 overflow-hidden rounded-base border-2 border-border bg-secondary-background shadow-shadow sm:h-96">
+            <Image
+              alt={`${post.title} cover`}
+              className="h-full w-full object-cover"
+              fill
+              priority
+              src={post.coverImageUrl}
+            />
+          </div>
+        )}
         <div className="mt-5 rounded-base border-2 border-border bg-secondary-background p-4">
           <p className="text-sm font-black uppercase text-primary">Mentor viết bài</p>
           <p className="mt-1 text-lg font-heading text-foreground">{post.authorName}</p>

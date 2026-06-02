@@ -28,6 +28,8 @@ Route Handlers, and a Supabase ORM/repository layer.
    ```txt
    NEXT_PUBLIC_SUPABASE_URL=
    NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
+   DATABASE_URL=
+   DIRECT_URL=
    CLOUDINARY_CLOUD_NAME=
    CLOUDINARY_API_KEY=
    CLOUDINARY_API_SECRET=
@@ -36,6 +38,9 @@ Route Handlers, and a Supabase ORM/repository layer.
 
    Course images and banners upload to Cloudinary, then Supabase stores only the
    resulting URL and metadata. Course documents still upload to Supabase Storage.
+
+   Prisma uses `DATABASE_URL` for the Supabase transaction-mode pooler and
+   `DIRECT_URL` for migrations/session-mode access.
 
 3. Start the app:
 
@@ -58,6 +63,9 @@ Route Handlers, and a Supabase ORM/repository layer.
 npm run dev
 npm run lint
 npm run build
+npm run prisma:validate
+npm run prisma:generate
+npm run prisma:pull
 ```
 
 There are no local database scripts in this project. Apply schema changes through

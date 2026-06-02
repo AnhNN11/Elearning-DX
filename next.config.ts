@@ -15,6 +15,11 @@ const remotePatterns: NonNullable<NonNullable<NextConfig["images"]>["remotePatte
     hostname: "res.cloudinary.com",
     pathname: "/**",
   },
+  {
+    protocol: "https",
+    hostname: "upload-services.limgrow.com",
+    pathname: "/uploads/**",
+  },
 ];
 
 if (supabaseHostname) {
@@ -28,6 +33,11 @@ if (supabaseHostname) {
 const nextConfig: NextConfig = {
   images: {
     remotePatterns,
+  },
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "10mb",
+    },
   },
 };
 

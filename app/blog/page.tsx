@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { AppHeader } from "@/components/app-header";
 import { BlogExplorer } from "@/components/blog-explorer";
 import { DotPattern } from "@/components/dot-pattern";
@@ -32,7 +33,20 @@ export default async function BlogPage() {
         {featuredPost && (
           <article className="mb-12 grid overflow-hidden rounded-base border-2 border-foreground bg-card text-card-foreground shadow-shadow lg:grid-cols-[0.95fr_1.05fr]">
             <div className="relative isolate min-h-64 overflow-hidden bg-primary p-6 text-primary-foreground sm:p-8">
-              <DotPattern className="text-background/22 [mask-image:radial-gradient(circle_at_45%_35%,black,transparent_72%)]" />
+              {featuredPost.coverImageUrl ? (
+                <>
+                  <Image
+                    alt={`${featuredPost.title} cover`}
+                    className="absolute inset-0 h-full w-full object-cover"
+                    fill
+                    priority
+                    src={featuredPost.coverImageUrl}
+                  />
+                  <div className="absolute inset-0 bg-foreground/55" />
+                </>
+              ) : (
+                <DotPattern className="text-background/22 [mask-image:radial-gradient(circle_at_45%_35%,black,transparent_72%)]" />
+              )}
               <div className="relative z-10 flex h-full flex-col justify-between gap-10">
                 <div className="flex flex-wrap gap-2">
                   <Badge className="bg-background text-foreground">{dict.blog.featuredLabel}</Badge>
@@ -40,12 +54,14 @@ export default async function BlogPage() {
                     {featuredPost.category}
                   </Badge>
                 </div>
-                <div className="rounded-base border-2 border-background/80 bg-foreground/35 p-4 font-mono text-sm leading-7">
-                  <p>const article = await learn({`{`}</p>
-                  <p className="pl-4 text-main">{`topic: "${featuredPost.tags[0]}",`}</p>
-                  <p className="pl-4 text-accent">{`format: "markdown + practice"`}</p>
-                  <p>{`});`}</p>
-                </div>
+                {!featuredPost.coverImageUrl && (
+                  <div className="rounded-base border-2 border-background/80 bg-foreground/35 p-4 font-mono text-sm leading-7">
+                    <p>const article = await learn({`{`}</p>
+                    <p className="pl-4 text-main">{`topic: "${featuredPost.tags[0]}",`}</p>
+                    <p className="pl-4 text-accent">{`format: "markdown + practice"`}</p>
+                    <p>{`});`}</p>
+                  </div>
+                )}
               </div>
             </div>
             <div className="p-6 sm:p-8">

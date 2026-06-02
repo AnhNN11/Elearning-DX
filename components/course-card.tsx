@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { Course } from "@/lib/types";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
+import { markdownToPlainText } from "@/lib/markdown-text";
 import { Pill } from "./ui";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "./ui/card";
@@ -16,6 +17,7 @@ export function CourseCard({
   course: Course;
 }) {
   const lessonCount = course.modules.reduce((total, item) => total + item.lessons.length, 0);
+  const description = markdownToPlainText(course.description);
 
   return (
     <Card className="group min-h-[300px] overflow-hidden py-0 transition hover:-translate-y-1 hover:shadow-md">
@@ -43,7 +45,7 @@ export function CourseCard({
         <CardTitle className="mt-4 text-xl font-black">{course.title}</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-1 flex-col">
-        <p className="text-muted-foreground line-clamp-3 text-sm leading-6">{course.description}</p>
+        <p className="text-muted-foreground line-clamp-3 text-sm leading-6">{description}</p>
         <div className="text-muted-foreground mt-auto flex items-center justify-between pt-5 text-sm font-bold">
           <span>{lessonCount} {copy.lessonUnit}</span>
           <span>{course.durationHours} {copy.hourUnit}</span>

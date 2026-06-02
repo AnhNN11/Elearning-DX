@@ -118,6 +118,53 @@ textarea {
   box-shadow: var(--shadow);
 }
 
+.header-nav-highlight {
+  isolation: isolate;
+}
+
+.header-nav-highlight::before,
+.header-nav-highlight::after {
+  position: absolute;
+  right: -0.35rem;
+  left: -0.35rem;
+  z-index: 0;
+  content: "";
+  opacity: 0;
+  transform: scaleX(0.08) rotate(-1.1deg);
+  transform-origin: left center;
+  transition:
+    opacity 180ms ease,
+    transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.header-nav-highlight::before {
+  top: 0.52rem;
+  bottom: 0.45rem;
+  background: color-mix(in srgb, var(--main) 60%, white 8%);
+  clip-path: polygon(0 18%, 96% 4%, 100% 88%, 18% 100%, 16% 82%, 0 92%);
+}
+
+.header-nav-highlight::after {
+  top: 0.94rem;
+  bottom: 0.3rem;
+  background: color-mix(in srgb, var(--main) 42%, transparent);
+  clip-path: polygon(4% 0, 100% 12%, 96% 100%, 0 86%);
+  transform: scaleX(0.06) rotate(1.1deg);
+}
+
+.header-nav-highlight:hover::before,
+.header-nav-highlight:hover::after,
+.header-nav-highlight[data-active="true"]::before,
+.header-nav-highlight[data-active="true"]::after {
+  opacity: 1;
+  transform: scaleX(1) rotate(-1.1deg);
+}
+
+.header-nav-highlight:hover::after,
+.header-nav-highlight[data-active="true"]::after {
+  transform: scaleX(0.96) rotate(1.1deg);
+}
+
 .dx-ticker {
   animation: dx-marquee 26s linear infinite;
 }
@@ -150,10 +197,61 @@ textarea {
 
 .magic-grid {
   background-image:
-    linear-gradient(to right, rgba(6, 21, 38, 0.12) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(6, 21, 38, 0.12) 1px, transparent 1px);
-  background-size: 48px 48px;
-  mask-image: radial-gradient(circle at center, black 0, transparent 72%);
+    radial-gradient(circle, rgba(7, 91, 187, 0.42) 1.7px, transparent 1.95px),
+    linear-gradient(to right, rgba(6, 21, 38, 0.24) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(6, 21, 38, 0.24) 1px, transparent 1px);
+  background-size: 18px 18px, 44px 44px, 44px 44px;
+  mask-image: radial-gradient(circle at center, black 0, transparent 86%);
+}
+
+.hero-board-grid {
+  background-image:
+    radial-gradient(circle, rgba(248, 251, 255, 0.72) 1.35px, transparent 1.65px),
+    linear-gradient(to right, rgba(248, 251, 255, 0.16) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(248, 251, 255, 0.16) 1px, transparent 1px);
+  background-size: 16px 16px, 56px 56px, 56px 56px;
+  mask-image: radial-gradient(circle at 40% 32%, black 0, transparent 84%);
+  opacity: 0.96;
+}
+
+.login-board-grid {
+  background-image:
+    radial-gradient(circle, rgba(7, 91, 187, 0.34) 1.35px, transparent 1.7px),
+    linear-gradient(to right, rgba(7, 91, 187, 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(7, 91, 187, 0.08) 1px, transparent 1px);
+  background-position:
+    center top,
+    center top,
+    center top;
+  background-size:
+    18px 18px,
+    56px 56px,
+    56px 56px;
+  mask-image: radial-gradient(circle at 50% 38%, black 0, transparent 86%);
+  opacity: 0.96;
+}
+
+.loading-board-grid {
+  background-image:
+    linear-gradient(to right, rgba(7, 91, 187, 0.14) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(7, 91, 187, 0.14) 1px, transparent 1px),
+    radial-gradient(circle, rgba(7, 91, 187, 0.22) 1px, transparent 1.5px);
+  background-position:
+    center top,
+    center top,
+    center top;
+  background-size:
+    56px 56px,
+    56px 56px,
+    18px 18px;
+  mask-image: radial-gradient(circle at 50% 38%, black 0, transparent 88%);
+  opacity: 0.95;
+}
+
+.loading-logo-spin {
+  transform-origin: center;
+  animation: loading-logo-spin 1.8s linear infinite;
+  will-change: transform;
 }
 
 .magic-border-beam {
@@ -315,24 +413,20 @@ textarea {
   z-index: 1;
 }
 
-.magic-highlighter {
-  z-index: 0;
+.rough-highlighter {
+  z-index: 1;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
 }
 
-.magic-highlighter::after {
-  position: absolute;
-  right: 0;
-  bottom: 0.08em;
-  left: 0;
-  z-index: -1;
-  height: 0.55em;
-  border-radius: 999px;
-  background: var(--highlight-color);
-  content: "";
-  opacity: 0.62;
-  transform: rotate(-1deg) scaleX(0.05);
-  transform-origin: left center;
-  animation: magic-highlight 900ms ease-out forwards;
+.rough-annotation {
+  pointer-events: none;
+}
+
+.rough-annotation path {
+  stroke-linecap: butt;
+  stroke-linejoin: miter;
+  stroke-miterlimit: 2;
 }
 
 .smooth-cursor-dot,
@@ -517,9 +611,9 @@ textarea {
   }
 }
 
-@keyframes magic-highlight {
+@keyframes loading-logo-spin {
   to {
-    transform: rotate(-1deg) scaleX(1);
+    transform: rotate(1turn);
   }
 }
 
@@ -538,11 +632,11 @@ textarea {
   .magic-terminal-spinner,
   .magic-terminal-metrics span,
   .border-beam-card::before,
-  .magic-highlighter::after,
   .magic-typing-caret,
   .magic-terminal-line,
   .magic-type-line,
-  .magic-type-line::after {
+  .magic-type-line::after,
+  .loading-logo-spin {
     animation: none;
   }
 
@@ -606,6 +700,15 @@ textarea {
   font-weight: 800;
   text-decoration: underline;
   text-underline-offset: 4px;
+}
+
+.markdown-view img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border: 2px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--card);
 }
 
 .markdown-view blockquote {

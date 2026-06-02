@@ -25,22 +25,27 @@ create table if not exists public.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   full_name text,
   email text,
+  phone text,
   avatar_url text,
   role public.user_role not null default 'student',
   created_at timestamptz not null default now()
 );
 
 alter table public.profiles add column if not exists email text;
+alter table public.profiles add column if not exists phone text;
 
 create table if not exists public.users (
   id uuid primary key references auth.users(id) on delete cascade,
   full_name text,
   email text,
+  phone text,
   avatar_url text,
   status text not null default 'active' check (status in ('active', 'disabled')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.users add column if not exists phone text;
 
 create table if not exists public.roles (
   id uuid primary key default gen_random_uuid(),
@@ -72,12 +77,13 @@ on conflict (slug) do update set
   is_system = excluded.is_system,
   updated_at = now();
 
-insert into public.users (id, full_name, email, avatar_url, created_at)
-select id, full_name, email, avatar_url, created_at
+insert into public.users (id, full_name, email, phone, avatar_url, created_at)
+select id, full_name, email, phone, avatar_url, created_at
 from public.profiles
 on conflict (id) do update set
   full_name = excluded.full_name,
   email = excluded.email,
+  phone = excluded.phone,
   avatar_url = excluded.avatar_url,
   updated_at = now();
 
@@ -242,19 +248,21 @@ begin
       );
   end if;
 
-  insert into public.profiles (id, full_name, email, avatar_url, role)
-  values (seed_admin_id, seed_admin_name, seed_admin_email, null, 'admin')
+  insert into public.profiles (id, full_name, email, phone, avatar_url, role)
+  values (seed_admin_id, seed_admin_name, seed_admin_email, null, null, 'admin')
   on conflict (id) do update set
     full_name = excluded.full_name,
     email = excluded.email,
+    phone = excluded.phone,
     avatar_url = excluded.avatar_url,
     role = excluded.role;
 
-  insert into public.users (id, full_name, email, avatar_url, status)
-  values (seed_admin_id, seed_admin_name, seed_admin_email, null, 'active')
+  insert into public.users (id, full_name, email, phone, avatar_url, status)
+  values (seed_admin_id, seed_admin_name, seed_admin_email, null, null, 'active')
   on conflict (id) do update set
     full_name = excluded.full_name,
     email = excluded.email,
+    phone = excluded.phone,
     avatar_url = excluded.avatar_url,
     status = excluded.status,
     updated_at = now();
@@ -442,6 +450,7 @@ create table if not exists public.blog_posts (
   author_role text,
   mentor_name text,
   source_file_name text,
+  cover_image_url text,
   content_md text not null,
   published boolean not null default false,
   published_at timestamptz not null default now(),
@@ -455,6 +464,7 @@ alter table public.blog_posts add column if not exists author_name text;
 alter table public.blog_posts add column if not exists author_role text;
 alter table public.blog_posts add column if not exists mentor_name text;
 alter table public.blog_posts add column if not exists source_file_name text;
+alter table public.blog_posts add column if not exists cover_image_url text;
 
 create table if not exists public.landing_blocks (
   id uuid primary key default gen_random_uuid(),
@@ -532,26 +542,29 @@ as $$
 declare
   student_role_id uuid;
 begin
-  insert into public.profiles (id, full_name, email, avatar_url, role)
+  insert into public.profiles (id, full_name, email, phone, avatar_url, role)
   values (
     new.id,
     coalesce(new.raw_user_meta_data ->> 'full_name', new.email),
     new.email,
+    new.raw_user_meta_data ->> 'phone',
     new.raw_user_meta_data ->> 'avatar_url',
     'student'
   )
   on conflict (id) do nothing;
 
-  insert into public.users (id, full_name, email, avatar_url)
+  insert into public.users (id, full_name, email, phone, avatar_url)
   values (
     new.id,
     coalesce(new.raw_user_meta_data ->> 'full_name', new.email),
     new.email,
+    new.raw_user_meta_data ->> 'phone',
     new.raw_user_meta_data ->> 'avatar_url'
   )
   on conflict (id) do update set
     full_name = excluded.full_name,
     email = excluded.email,
+    phone = excluded.phone,
     avatar_url = excluded.avatar_url,
     updated_at = now();
 

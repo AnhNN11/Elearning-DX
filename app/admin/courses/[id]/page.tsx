@@ -246,6 +246,73 @@ export default async function AdminCourseDetailPage({
               </CardContent>
             </Card>
           ))}
+          <Card className="scroll-mt-24" id="new-lesson">
+            <CardHeader>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="flex items-center gap-2 text-sm font-heading uppercase text-primary">
+                    <PlusCircle className="size-4" />
+                    Tạo content bài học
+                  </p>
+                  <CardTitle className="mt-2 text-2xl font-black text-foreground">
+                    Lesson mới lưu trực tiếp vào Supabase
+                  </CardTitle>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                    Nội dung Markdown ở đây được ghi vào cột lessons.content_md và hiển thị ở trang học ngay sau khi lưu.
+                  </p>
+                </div>
+                <Badge variant="outline">Database content</Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <form action={createLessonAction} className="grid gap-4">
+                <input name="courseId" type="hidden" value={course.id} />
+                <input name="courseSlug" type="hidden" value={course.slug} />
+                <div className="grid gap-4 md:grid-cols-2">
+                  <Input
+                    name="moduleTitle"
+                    placeholder={dict.admin.newModule}
+                    required
+                  />
+                  <Input
+                    name="title"
+                    placeholder={dict.admin.lessonName}
+                    required
+                  />
+                  <Input
+                    name="slug"
+                    placeholder="lesson-slug"
+                    required
+                  />
+                  <Input
+                    defaultValue="15"
+                    min="1"
+                    name="estimatedMinutes"
+                    placeholder="Số phút"
+                    required
+                    type="number"
+                  />
+                  <Input
+                    className="md:col-span-2"
+                    name="videoUrl"
+                    placeholder={dict.admin.youtubeLesson}
+                  />
+                </div>
+                <div className="rounded-base border-2 border-border bg-secondary-background p-4">
+                  <p className="mb-3 text-sm font-heading text-foreground">{dict.admin.markdownContent}</p>
+                  <MarkdownEditor
+                    emptyPreview={dict.admin.emptyMarkdown}
+                    name="content"
+                    placeholder="## Mục tiêu bài học\n\n- Viết nội dung chính\n- Thêm checklist, code block, link tài liệu..."
+                    required
+                  />
+                </div>
+                <Button className="w-full sm:w-fit" type="submit">
+                  {dict.admin.addLesson}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
         </div>
         <Card className="h-fit">
           <CardContent>
@@ -400,50 +467,6 @@ export default async function AdminCourseDetailPage({
             <p className="bg-secondary text-secondary-foreground mt-5 rounded-md p-3 text-sm leading-6">
               {dict.admin.addLessonHelp}
             </p>
-            <form action={createLessonAction} className="mt-5 space-y-3" id="new-lesson">
-              <p className="flex items-center gap-2 text-sm font-heading text-foreground">
-                <PlusCircle className="size-4" />
-                Tạo lesson mới
-              </p>
-              <input name="courseId" type="hidden" value={course.id} />
-              <input name="courseSlug" type="hidden" value={course.slug} />
-              <Input
-                name="moduleTitle"
-                placeholder={dict.admin.newModule}
-                required
-              />
-              <Input
-                name="title"
-                placeholder={dict.admin.lessonName}
-                required
-              />
-              <Input
-                name="slug"
-                placeholder="lesson-slug"
-                required
-              />
-              <Input
-                name="videoUrl"
-                placeholder={dict.admin.youtubeLesson}
-              />
-              <Input
-                defaultValue="15"
-                min="1"
-                name="estimatedMinutes"
-                placeholder="Số phút"
-                required
-                type="number"
-              />
-              <MarkdownEditor
-                emptyPreview={dict.admin.emptyMarkdown}
-                name="content"
-                placeholder={dict.admin.markdownContent}
-                required
-              />
-              <Button className="w-full" type="submit">
-                {dict.admin.addLesson}
-              </Button>
-            </form>
           </CardContent>
         </Card>
       </div>

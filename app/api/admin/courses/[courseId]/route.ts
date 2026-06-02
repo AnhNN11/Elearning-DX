@@ -17,6 +17,7 @@ export async function PATCH(
       category: formText(formData, "category"),
       level: formText(formData, "level"),
       description: formText(formData, "description"),
+      thumbnailUrl: formData.has("thumbnailUrl") ? formText(formData, "thumbnailUrl") : undefined,
       durationHours: formText(formData, "durationHours"),
       outcomes: formText(formData, "outcomes"),
       accent: formText(formData, "accent") || "#075bbb",

@@ -17,6 +17,14 @@ export const courseSchema = z.object({
   category: z.string().min(2),
   level: z.string().min(2),
   description: z.string().min(10),
+  thumbnailUrl: z
+    .string()
+    .trim()
+    .optional()
+    .transform((value) => value || undefined)
+    .refine((value) => !value || z.string().url().safeParse(value).success, {
+      message: "Link ảnh không hợp lệ",
+    }),
   durationHours: z.coerce.number().min(0.5).max(500),
   outcomes: z.string().transform((value) =>
     value
@@ -114,18 +122,26 @@ export const mentorBookingSchema = z.object({
 });
 
 export const blogPostSchema = z.object({
-  title: z.string().min(2),
-  slug: z.string().min(2),
-  excerpt: z.string().min(10),
-  category: z.string().min(2),
+  title: z.string().trim().min(2, "cần ít nhất 2 ký tự"),
+  slug: z.string().trim().min(2, "cần ít nhất 2 ký tự"),
+  excerpt: z.string().trim().min(10, "cần ít nhất 10 ký tự"),
+  category: z.string().trim().min(2, "cần ít nhất 2 ký tự"),
+  coverImageUrl: z
+    .string()
+    .trim()
+    .optional()
+    .transform((value) => value || undefined)
+    .refine((value) => !value || z.string().url().safeParse(value).success, {
+      message: "Link cover image không hợp lệ",
+    }),
   tags: z.string().optional(),
   readTime: z.string().optional(),
   locale: z.enum(["vi", "en"]),
-  authorName: z.string().min(2),
+  authorName: z.string().trim().min(2, "cần ít nhất 2 ký tự"),
   authorRole: z.string().optional(),
-  mentorName: z.string().min(2),
+  mentorName: z.string().trim().min(2, "cần ít nhất 2 ký tự"),
   sourceFileName: z.string().optional(),
-  content: z.string().min(10),
+  content: z.string().trim().min(10, "cần ít nhất 10 ký tự"),
   published: z.boolean(),
 });
 

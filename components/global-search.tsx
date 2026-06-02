@@ -61,10 +61,10 @@ export function GlobalSearch({
   return (
     <div className={cn("relative", className)}>
       <div className="relative">
-        <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
         <Input
           aria-label={copy.open}
-          className="h-11 bg-background pl-9 pr-16 shadow-shadow"
+          className="h-12 bg-background pl-11 pr-20 text-base shadow-shadow"
           onBlur={() => window.setTimeout(() => setOpen(false), 140)}
           onChange={(event) => {
             setQuery(event.target.value);
@@ -75,7 +75,7 @@ export function GlobalSearch({
           ref={inputRef}
           value={query}
         />
-        <span className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 rounded-base border-2 border-border bg-secondary-background px-2 py-0.5 text-[10px] font-heading text-muted-foreground sm:inline">
+        <span className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 rounded-base border-2 border-border bg-secondary-background px-2.5 py-1 text-[10px] font-heading text-muted-foreground sm:inline">
           Ctrl K
         </span>
       </div>

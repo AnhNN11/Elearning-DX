@@ -1,4 +1,5 @@
 import { requireApiAdmin, requireApiOrm } from "@/lib/api/auth";
+import { uploadImageToCloudinary } from "@/lib/api/cloudinary";
 import { isUploadFile } from "@/lib/api/course-storage";
 import { apiError, apiOk, csvToArray, formText } from "@/lib/api/responses";
 import { blogPostSchema } from "@/lib/api/schemas";
@@ -19,11 +20,24 @@ export async function POST(request: Request) {
     const locale = formText(formData, "locale") === "en" ? "en" : "vi";
     const content = fileContent || formText(formData, "content");
     const readTime = formText(formData, "readTime") || estimateReadTime(content, locale);
+    const slug = formText(formData, "slug");
+    const coverImage = formData.get("coverImage");
+    let coverImageUrl = formText(formData, "coverImageUrl");
+
+    if (isUploadFile(coverImage)) {
+      const upload = await uploadImageToCloudinary(coverImage, {
+        courseSlug: slug || "blog-post",
+        folderName: "blog-covers",
+      });
+      coverImageUrl = upload.secureUrl;
+    }
+
     const parsed = blogPostSchema.parse({
       title: formText(formData, "title"),
-      slug: formText(formData, "slug"),
+      slug,
       excerpt: formText(formData, "excerpt"),
       category: formText(formData, "category"),
+      coverImageUrl,
       tags: formText(formData, "tags"),
       readTime,
       locale,

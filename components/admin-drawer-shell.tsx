@@ -21,7 +21,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Logo } from "@/components/ui";
+import { Logo, LogoMark } from "@/components/ui";
 import { cn } from "@/lib/utils";
 
 type AdminDrawerItem = {
@@ -138,7 +138,7 @@ export function AdminDrawerShell({
         )}
       >
         <div className={cn("flex items-center gap-2", desktopOpen ? "justify-between" : "flex-col justify-center")}>
-          {desktopOpen ? <Logo className="min-w-0" /> : <span className="rounded-base border-2 border-border bg-main px-2 py-1 text-xs font-heading text-main-foreground shadow-shadow">DX</span>}
+          {desktopOpen ? <Logo className="min-w-0" /> : <LogoMark className="shrink-0" />}
           <Button
             aria-expanded={desktopOpen}
             aria-label={desktopOpen ? "Thu gọn drawer admin" : "Mở rộng drawer admin"}

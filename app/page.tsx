@@ -3,13 +3,15 @@ import Image from "next/image";
 import { AppHeader } from "@/components/app-header";
 import { CourseCard } from "@/components/course-card";
 import { DotPattern } from "@/components/dot-pattern";
+import { HomeContactForm } from "@/components/home-contact-form";
+import { HomeMentorBooking } from "@/components/home-mentor-booking";
 import { MagicCodingShowcase } from "@/components/magic-coding-showcase";
 import { TypingAnimation } from "@/components/typing-animation";
 import { ButtonLink, SectionHeader } from "@/components/ui";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getBlogPosts, getInterviewQuestions, getLandingBlocks, mentors } from "@/lib/content";
+import { getLandingBlocks } from "@/lib/content";
 import { getCourses } from "@/lib/data";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import { getLocale } from "@/lib/i18n/server";
@@ -17,8 +19,6 @@ import { getLocale } from "@/lib/i18n/server";
 export default async function HomePage() {
   const locale = await getLocale();
   const dict = getDictionary(locale);
-  const blogPosts = await getBlogPosts(locale);
-  const interviewQuestions = await getInterviewQuestions(locale);
   const landingBlocks = await getLandingBlocks(locale);
   const courses = await getCourses();
   const t = dict.home;
@@ -40,7 +40,8 @@ export default async function HomePage() {
       </div>
 
       <section className="relative isolate overflow-hidden bg-primary text-primary-foreground">
-        <DotPattern className="text-background/18 [mask-image:radial-gradient(circle_at_32%_30%,black,transparent_72%)]" />
+        <DotPattern className="text-background/12 [mask-image:radial-gradient(circle_at_32%_30%,black,transparent_76%)]" />
+        <div className="hero-board-grid pointer-events-none absolute inset-0" aria-hidden="true" />
         <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_18%_18%,rgba(19,188,231,0.55),transparent_32%),radial-gradient(circle_at_86%_12%,rgba(255,79,94,0.32),transparent_30%),linear-gradient(135deg,#075bbb_0%,#063c8b_55%,#071a2f_100%)]" />
         <div className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[1.25fr_0.75fr] lg:py-20">
           <div className="relative z-10 dx-animate-in">
@@ -213,114 +214,19 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto grid max-w-7xl gap-8 px-4 py-16 sm:px-6 lg:grid-cols-[0.95fr_1.05fr]" id="consultation">
-        <div>
-          <SectionHeader
-            description={t.mentorDescription}
-            eyebrow={t.mentorEyebrow}
-            title={t.mentorTitle}
-          />
-          <div className="mt-8 grid gap-4">
-            {mentors.map((mentor) => (
-              <Card className="dx-card transition hover:-translate-y-1 hover:shadow-md" key={mentor.name}>
-                <CardContent className="grid gap-4 sm:grid-cols-[1fr_auto]">
-                  <div>
-                    <p className="text-xl font-black text-foreground">{mentor.name}</p>
-                    <p className="text-muted-foreground mt-1 text-sm font-bold">{mentor.role}</p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {mentor.expertise.map((item) => (
-                        <Badge key={item} variant="secondary">{item}</Badge>
-                      ))}
-                    </div>
-                  </div>
-                  <p className="text-sm font-black uppercase text-primary">{mentor.schedule}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-
-        <Card className="dx-card bg-card">
-          <CardHeader>
-            <Badge className="w-fit">{t.bookingBadge}</Badge>
-            <CardTitle className="text-3xl font-black uppercase">{t.bookingTitle}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-5">
-            <div className="grid gap-3 sm:grid-cols-2">
-              {[
-                ["01", t.fullName],
-                ["02", t.preferredTime],
-                ["03", t.topic],
-                ["04", t.note],
-              ].map(([step, label]) => (
-                <div className="rounded-base border-2 border-border bg-secondary p-4" key={step}>
-                  <p className="font-mono text-xs font-black text-primary">{step}</p>
-                  <p className="mt-2 text-sm font-black uppercase text-foreground">{label}</p>
-                </div>
-              ))}
-            </div>
-            <p className="text-sm leading-7 text-muted-foreground">
-              {dict.booking.description}
-            </p>
-            <Button asChild className="w-full" size="lg">
-              <Link href="/mentor-booking">{t.submitBooking}</Link>
-            </Button>
-          </CardContent>
-        </Card>
+      <section id="consultation">
+        <HomeMentorBooking copy={t} locale={locale} />
       </section>
 
       <section className="mx-auto max-w-7xl px-4 pb-16 sm:px-6">
-        <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+        <div className="mb-8 max-w-3xl">
           <SectionHeader
             description={t.careerDescription}
             eyebrow={t.careerEyebrow}
             title={t.careerTitle}
           />
-          <div className="flex gap-3">
-            <Button asChild variant="outline">
-              <Link href="/blog">{dict.nav.blog}</Link>
-            </Button>
-            <Button asChild>
-              <Link href="/interview-practice">{dict.nav.interview}</Link>
-            </Button>
-          </div>
         </div>
-        <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
-          <div className="grid gap-4 md:grid-cols-3">
-            {blogPosts.map((post) => (
-              <Card className="dx-card" key={post.slug}>
-                <CardHeader>
-                  <Badge className="w-fit" variant="secondary">{post.category}</Badge>
-                  <CardTitle className="text-xl font-black">{post.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground text-sm leading-6">{post.excerpt}</p>
-                  <Link className="mt-5 inline-flex text-sm font-black text-primary" href={`/blog/${post.slug}`}>
-                    {t.readPost}
-                  </Link>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-          <Card className="dx-card bg-primary text-primary-foreground">
-            <CardHeader>
-              <Badge className="w-fit bg-background text-foreground">{t.interviewBank}</Badge>
-              <CardTitle className="text-3xl font-black uppercase">{interviewQuestions.length} {t.keyQuestions}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm leading-7 text-primary-foreground/85">
-                {t.interviewBankDescription}
-              </p>
-              <Button
-                asChild
-                className="mt-6 bg-background hover:bg-secondary"
-                style={{ color: "var(--primary)" }}
-              >
-                <Link href="/interview-practice">{t.startPractice}</Link>
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+        <HomeContactForm copy={t} />
       </section>
     </main>
   );

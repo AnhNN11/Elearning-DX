@@ -258,6 +258,7 @@ export function mapProfileFromProfileRow(userId: string, authEmail: string | und
 export function mapBlogPost(row: BlogPostRow): BlogPost {
   return {
     slug: row.slug,
+    locale: row.locale ?? "vi",
     title: row.title,
     excerpt: row.excerpt ?? "",
     category: row.category ?? "Engineering",
@@ -268,6 +269,7 @@ export function mapBlogPost(row: BlogPostRow): BlogPost {
     authorRole: row.author_role ?? undefined,
     mentorName: row.mentor_name ?? row.author_name ?? "DolphinX Mentor",
     sourceFileName: row.source_file_name ?? undefined,
+    coverImageUrl: row.cover_image_url ?? undefined,
     content: (row.content_md ?? "").split(/\n{2,}/).filter(Boolean),
   };
 }

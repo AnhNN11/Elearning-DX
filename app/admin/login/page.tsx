@@ -76,6 +76,14 @@ export default async function AdminLoginPage({
             </div>
           )}
 
+          {params?.error === "oauth" && (
+            <div className="mb-4 rounded-base border-2 border-border bg-destructive p-4 text-sm font-black text-white">
+              {isVietnamese
+                ? "Không hoàn tất đăng nhập Google. Hãy thử lại hoặc kiểm tra Google provider trong Supabase Auth."
+                : "Google sign-in could not be completed. Try again or check the Google provider in Supabase Auth."}
+            </div>
+          )}
+
           {profile && (
             <Card className="mb-4 border-dashed">
               <CardContent>

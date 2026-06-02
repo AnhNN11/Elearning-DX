@@ -25,6 +25,7 @@ export async function POST(request: Request) {
       category: formText(formData, "category"),
       level: formText(formData, "level"),
       description: formText(formData, "description"),
+      thumbnailUrl: formText(formData, "thumbnailUrl") || undefined,
       durationHours: formText(formData, "durationHours") || "1",
       outcomes: formText(formData, "outcomes") || "Hoàn thành nội dung khóa học\nLàm bài kiểm tra\nNhận chứng chỉ",
       accent: formText(formData, "accent") || "#075bbb",

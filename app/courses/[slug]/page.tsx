@@ -1,7 +1,10 @@
 import { notFound } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
+import { BookOpen, Clock3, ListChecks } from "lucide-react";
 import { AppHeader } from "@/components/app-header";
 import { ButtonLink, Pill, SectionHeader } from "@/components/ui";
+import { MarkdownViewer } from "@/components/markdown-viewer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,6 +27,8 @@ export default async function CourseDetailPage({
     notFound();
   }
   const resources = course.assets.filter((asset) => asset.kind !== "banner");
+  const lessonCount = getCourseLessonCount(course);
+  const isVietnamese = locale === "vi";
 
   return (
     <main className="min-h-screen bg-background">
@@ -35,41 +40,55 @@ export default async function CourseDetailPage({
             <Pill>{course.level}</Pill>
             <Pill>{course.durationHours} {dict.courses.hourUnit}</Pill>
           </div>
-          <SectionHeader description={course.description} title={course.title} />
+          <div className="max-w-2xl">
+            <SectionHeader title={course.title} />
+            {course.description && (
+              <MarkdownViewer className="mt-4 text-base" content={course.description} />
+            )}
+          </div>
           <Card className="mt-8">
             <CardHeader>
               <CardTitle className="text-xl font-black">{dict.courses.outcomesTitle}</CardTitle>
             </CardHeader>
             <CardContent>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {course.outcomes.map((outcome) => (
-                <div className="bg-muted rounded-md p-3 text-sm font-bold text-foreground" key={outcome}>
-                  {outcome}
-                </div>
-              ))}
-            </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {course.outcomes.map((outcome) => (
+                  <div className="bg-muted rounded-md p-3 text-sm font-bold text-foreground" key={outcome}>
+                    {outcome}
+                  </div>
+                ))}
+              </div>
             </CardContent>
           </Card>
           <div className="mt-6 space-y-4">
-            {course.modules.map((item) => (
+            {course.modules.map((item, moduleIndex) => (
               <Card key={item.id}>
                 <CardHeader>
-                  <CardTitle className="text-lg font-black">{item.title}</CardTitle>
+                  <CardTitle className="flex items-center gap-3 text-lg font-black">
+                    <span className="grid size-9 place-items-center rounded-base border-2 border-border bg-secondary text-sm text-primary">
+                      {String(moduleIndex + 1).padStart(2, "0")}
+                    </span>
+                    {item.title}
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                <div className="divide-y">
-                  {item.lessons.map((lesson) => (
-                    <div className="flex items-center justify-between gap-4 py-3" key={lesson.id}>
-                      <div>
-                        <p className="font-bold text-foreground">{lesson.title}</p>
-                        <p className="text-muted-foreground text-sm">
-                          {lesson.estimatedMinutes} {dict.courses.minuteUnit}
-                        </p>
+                  <div className="divide-y">
+                    {item.lessons.map((lesson) => (
+                      <div className="flex items-center justify-between gap-4 py-3" key={lesson.id}>
+                        <div>
+                          <p className="font-bold text-foreground">{lesson.title}</p>
+                          <p className="text-muted-foreground text-sm">
+                            {lesson.estimatedMinutes} {dict.courses.minuteUnit}
+                          </p>
+                        </div>
+                        {lesson.assessment && (
+                          <Badge variant="secondary">
+                            {lesson.assessment.type === "quiz" ? "Quiz" : "Code"}
+                          </Badge>
+                        )}
                       </div>
-                      {lesson.assessment && <Badge variant="secondary">{lesson.assessment.type === "quiz" ? "Quiz" : "Code"}</Badge>}
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
                 </CardContent>
               </Card>
             ))}
@@ -118,7 +137,7 @@ export default async function CourseDetailPage({
           </div>
           <div className="mt-5 grid grid-cols-2 gap-3 text-center">
             <div className="bg-muted rounded-md p-3">
-              <p className="text-2xl font-black text-primary">{getCourseLessonCount(course)}</p>
+              <p className="text-2xl font-black text-primary">{lessonCount}</p>
               <p className="text-muted-foreground text-xs font-bold">{dict.courses.lessonsLabel}</p>
             </div>
             <div className="bg-muted rounded-md p-3">
@@ -137,6 +156,56 @@ export default async function CourseDetailPage({
             <ButtonLink href={`/learn/${course.slug}`} variant="secondary">
               {dict.courses.continueButton}
             </ButtonLink>
+          </div>
+          <div className="mt-6 rounded-base border-2 border-border bg-secondary-background p-4">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-heading uppercase text-primary">
+                  {isVietnamese ? "Mục lục" : "Table of contents"}
+                </p>
+                <h2 className="mt-1 text-xl font-black text-foreground">
+                  {isVietnamese ? "Nội dung khóa học" : "Course content"}
+                </h2>
+              </div>
+              <ListChecks className="size-6 text-primary" />
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-2 text-xs font-black text-muted-foreground">
+              <span className="inline-flex items-center gap-1">
+                <BookOpen className="size-4 text-primary" />
+                {course.modules.length} {dict.courses.module}
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <Clock3 className="size-4 text-primary" />
+                {course.durationHours} {dict.courses.hourUnit}
+              </span>
+            </div>
+            <div className="mt-4 max-h-[420px] space-y-4 overflow-y-auto pr-1">
+              {course.modules.map((module, moduleIndex) => (
+                <div key={module.id}>
+                  <p className="text-sm font-black text-foreground">
+                    {moduleIndex + 1}. {module.title}
+                  </p>
+                  <div className="mt-2 space-y-2">
+                    {module.lessons.map((lesson, lessonIndex) => (
+                      <Link
+                        className="block rounded-base border-2 border-border bg-muted px-3 py-2 text-sm font-bold text-foreground transition hover:-translate-y-0.5 hover:bg-secondary hover:shadow-shadow"
+                        href={`/learn/${course.slug}/${lesson.slug}`}
+                        key={lesson.id}
+                      >
+                        <span className="text-primary">
+                          {moduleIndex + 1}.{lessonIndex + 1}
+                        </span>{" "}
+                        {lesson.title}
+                        <span className="mt-1 block text-xs text-muted-foreground">
+                          {lesson.estimatedMinutes} {dict.courses.minuteUnit}
+                          {lesson.assessment ? ` · ${lesson.assessment.type === "quiz" ? "Quiz" : "Code"}` : ""}
+                        </span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
           </CardContent>
         </Card>

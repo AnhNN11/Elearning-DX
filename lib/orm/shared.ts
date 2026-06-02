@@ -171,6 +171,7 @@ export type ProfileRow = {
 
 export type BlogPost = {
   slug: string;
+  locale: "vi" | "en";
   title: string;
   excerpt: string;
   category: string;
@@ -181,11 +182,13 @@ export type BlogPost = {
   authorRole?: string;
   mentorName: string;
   sourceFileName?: string;
+  coverImageUrl?: string;
   content: string[];
 };
 
 export type BlogPostRow = {
   slug: string;
+  locale: "vi" | "en" | null;
   title: string;
   excerpt: string | null;
   category: string | null;
@@ -196,6 +199,7 @@ export type BlogPostRow = {
   author_role: string | null;
   mentor_name: string | null;
   source_file_name: string | null;
+  cover_image_url: string | null;
   content_md: string | null;
 };
 
@@ -246,6 +250,7 @@ export type CourseCreateInput = {
   category: string;
   level: string;
   description: string;
+  thumbnailUrl?: string;
   durationHours: number;
   outcomes: string[];
   accent: string;
@@ -297,6 +302,7 @@ export type BlogPostUpsertInput = {
   authorRole?: string;
   mentorName: string;
   sourceFileName?: string;
+  coverImageUrl?: string;
   content: string;
   published: boolean;
   createdBy: string;
