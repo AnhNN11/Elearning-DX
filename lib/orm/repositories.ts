@@ -489,6 +489,20 @@ export class LearningRepository {
 export class PaymentsRepository {
   constructor(private readonly supabase: OrmClient) {}
 
+  async listAll(limit = 200): Promise<CoursePayment[]> {
+    const { data, error } = await this.supabase
+      .from("course_payments")
+      .select(coursePaymentSelect)
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    if (error || !data) {
+      return [];
+    }
+
+    return (data as CoursePaymentRow[]).map(mapCoursePayment);
+  }
+
   async createCoursePayment(input: {
     userId: string;
     courseId: string;

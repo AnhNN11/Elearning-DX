@@ -146,11 +146,14 @@ export function mapCourse(row: CourseRow): Course {
 
 export function mapCoursePayment(row: CoursePaymentRow): CoursePayment {
   const course = Array.isArray(row.courses) ? row.courses[0] : row.courses;
+  const profile = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
 
   return {
     id: row.id,
     orderId: row.order_id,
     userId: row.user_id,
+    userEmail: profile?.email ?? undefined,
+    userFullName: profile?.full_name ?? undefined,
     courseId: row.course_id,
     courseSlug: course?.slug,
     courseTitle: course?.title,

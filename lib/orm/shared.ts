@@ -125,6 +125,7 @@ export type CoursePaymentRow = {
   expires_at: string;
   created_at: string;
   courses?: { id: string; slug: string; title: string } | { id: string; slug: string; title: string }[] | null;
+  profiles?: { id: string; full_name: string | null; email: string | null } | { id: string; full_name: string | null; email: string | null }[] | null;
 };
 
 export type EnrollmentProgressRow = {
@@ -437,5 +438,6 @@ export const certificateSelect = "id,certificate_no,issued_at,profiles(full_name
 
 export const coursePaymentSelect = `
   *,
-  courses(id,slug,title)
+  courses(id,slug,title),
+  profiles(id,full_name,email)
 `;

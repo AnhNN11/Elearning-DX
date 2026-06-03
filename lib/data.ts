@@ -6,6 +6,7 @@ import type {
   AdminUser,
   Certificate,
   Course,
+  CoursePayment,
   Enrollment,
   Lesson,
   MentorBooking,
@@ -72,6 +73,11 @@ export async function getAdminUsers(): Promise<AdminUser[]> {
 export async function getAdminRoles(): Promise<AdminRole[]> {
   const orm = await createOrm();
   return orm ? orm.users.listRoles() : [];
+}
+
+export async function getAdminCoursePayments(): Promise<CoursePayment[]> {
+  const orm = await createOrm();
+  return orm ? orm.payments.listAll() : [];
 }
 
 export async function getAdminDashboardMetrics(): Promise<AdminDashboardMetrics> {

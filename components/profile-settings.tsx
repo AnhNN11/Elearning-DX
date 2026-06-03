@@ -21,10 +21,10 @@ export function ProfileSettings({
   saved?: boolean;
 }) {
   return (
-    <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_0.9fr]">
-      <Card>
+    <div className="grid gap-6 lg:grid-cols-[1fr_0.9fr]">
+      <Card className="shadow-none">
         <CardHeader>
-          <CardTitle className="text-2xl">{copy.editTitle}</CardTitle>
+          <CardTitle className="text-xl">{copy.editTitle}</CardTitle>
         </CardHeader>
         <CardContent>
           <form action={updateProfileAction} className="space-y-4">
@@ -42,9 +42,9 @@ export function ProfileSettings({
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="shadow-none">
         <CardHeader>
-          <CardTitle className="text-2xl">{copy.accountTitle}</CardTitle>
+          <CardTitle className="text-xl">{copy.accountTitle}</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm leading-6 text-muted-foreground">{copy.accountDescription}</p>
@@ -53,9 +53,9 @@ export function ProfileSettings({
               identities.map((identity) => (
                 <div className="rounded-base border-2 border-border bg-secondary-background p-3" key={identity.id}>
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
+                    <div className="min-w-0">
                       <p className="font-heading text-foreground">{identity.provider}</p>
-                      {identity.email && <p className="text-sm text-muted-foreground">{identity.email}</p>}
+                      {identity.email && <p className="break-all text-sm text-muted-foreground">{identity.email}</p>}
                     </div>
                     <Badge variant="outline">{copy.provider}</Badge>
                   </div>

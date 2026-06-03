@@ -113,6 +113,8 @@ export type CoursePayment = {
   id: string;
   orderId: string;
   userId: string;
+  userEmail?: string;
+  userFullName?: string;
   courseId: string;
   courseSlug?: string;
   courseTitle?: string;
