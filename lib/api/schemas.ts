@@ -11,6 +11,11 @@ export const enrollSchema = z.object({
   courseSlug: z.string().min(1),
 });
 
+export const courseCheckoutSchema = z.object({
+  courseId: z.string().min(1),
+  courseSlug: z.string().min(1),
+});
+
 export const courseSchema = z.object({
   title: z.string().min(2),
   slug: z.string().min(2),
@@ -26,6 +31,7 @@ export const courseSchema = z.object({
       message: "Link ảnh không hợp lệ",
     }),
   durationHours: z.coerce.number().min(0.5).max(500),
+  priceVnd: z.coerce.number().int().min(0).max(999_999_999),
   outcomes: z.string().transform((value) =>
     value
       .split(/\r?\n|,/)

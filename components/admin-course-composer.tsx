@@ -20,6 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { formatVnd } from "@/lib/money";
 
 type CourseAction = (formData: FormData) => void | Promise<void>;
 
@@ -64,6 +65,7 @@ export function AdminCourseComposer({ action }: { action: CourseAction }) {
   const [category, setCategory] = useState("Fullstack");
   const [level, setLevel] = useState("Cơ bản");
   const [durationHours, setDurationHours] = useState("18");
+  const [priceVnd, setPriceVnd] = useState("0");
   const [accent, setAccent] = useState("#075bbb");
   const [thumbnailUrl, setThumbnailUrl] = useState("");
   const [bannerPreviewUrl, setBannerPreviewUrl] = useState("");
@@ -224,7 +226,7 @@ export function AdminCourseComposer({ action }: { action: CourseAction }) {
             </div>
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-[1fr_180px_160px_110px]">
+          <div className="grid gap-4 lg:grid-cols-[1fr_180px_160px_180px_110px]">
             <div className="space-y-2">
               <Label htmlFor="course-category">Category</Label>
               <Input
@@ -259,6 +261,19 @@ export function AdminCourseComposer({ action }: { action: CourseAction }) {
                 step="0.5"
                 type="number"
                 value={durationHours}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="course-price">Giá VND</Label>
+              <Input
+                id="course-price"
+                min="0"
+                name="priceVnd"
+                onChange={(event) => setPriceVnd(event.target.value)}
+                required
+                step="10000"
+                type="number"
+                value={priceVnd}
               />
             </div>
             <div className="space-y-2">
@@ -428,6 +443,7 @@ export function AdminCourseComposer({ action }: { action: CourseAction }) {
               <Badge>{category || "Fullstack"}</Badge>
               <Badge variant="outline">{level || "Cơ bản"}</Badge>
               <Badge variant="secondary">{durationHours || "18"} giờ</Badge>
+              <Badge variant="secondary">{formatVnd(Number(priceVnd) || 0)}</Badge>
             </div>
             <h2 className="mt-4 text-3xl font-black uppercase leading-tight text-foreground">
               {title || "Tên khóa học"}

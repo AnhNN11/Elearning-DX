@@ -34,6 +34,12 @@ Route Handlers, and a Supabase ORM/repository layer.
    CLOUDINARY_API_KEY=
    CLOUDINARY_API_SECRET=
    CLOUDINARY_UPLOAD_FOLDER=dolphinx
+   SEPAY_BANK_CODE=
+   SEPAY_BANK_ACCOUNT=
+   SEPAY_BANK_ACCOUNT_NAME=
+   SEPAY_QR_TEMPLATE=compact
+   SEPAY_PAYMENT_EXPIRES_MINUTES=30
+   SEPAY_IPN_REQUIRE_SECRET=false
    ```
 
    Course images and banners upload to Cloudinary, then Supabase stores only the
@@ -41,6 +47,18 @@ Route Handlers, and a Supabase ORM/repository layer.
 
    Prisma uses `DATABASE_URL` for the Supabase transaction-mode pooler and
    `DIRECT_URL` for migrations/session-mode access.
+
+   SePay QR checkout renders the bank-transfer QR directly on
+   `/checkout/[orderId]` using `SEPAY_BANK_CODE` and `SEPAY_BANK_ACCOUNT`. In the
+   SePay dashboard, set IPN URL to:
+
+   ```txt
+   https://your-domain.com/api/payments/sepay/ipn
+   ```
+
+   If IPN Auth Type is `Không có`, leave `SEPAY_IPN_REQUIRE_SECRET=false`. To
+   require a header secret, set `SEPAY_IPN_REQUIRE_SECRET=true` and
+   `SEPAY_IPN_SECRET_KEY=`.
 
 3. Start the app:
 

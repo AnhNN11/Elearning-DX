@@ -21,9 +21,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import { getLocale } from "@/lib/i18n/server";
+import { formatVnd } from "@/lib/money";
 import { getYouTubeEmbedUrl, getYouTubeVideoId } from "@/lib/youtube";
 
 export default async function AdminCourseDetailPage({
@@ -316,46 +318,108 @@ export default async function AdminCourseDetailPage({
         </div>
         <Card className="h-fit">
           <CardContent>
-            <h2 className="text-xl font-black text-foreground">Cấu hình khóa học</h2>
-            <form action={updateCourseAction} className="mt-4 space-y-3 rounded-base border-2 border-border bg-secondary-background p-3">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 className="text-xl font-black text-foreground">Cấu hình khóa học</h2>
+                <p className="mt-1 text-xs font-bold text-muted-foreground">
+                  Sửa thông tin public, thời lượng và giá bán của khóa học.
+                </p>
+              </div>
+              <Badge variant={course.priceVnd <= 0 ? "default" : "secondary"}>
+                {course.priceVnd <= 0 ? "Free" : formatVnd(course.priceVnd)}
+              </Badge>
+            </div>
+            <form action={updateCourseAction} className="mt-4 space-y-4 rounded-base border-2 border-border bg-secondary-background p-3">
               <input name="courseId" type="hidden" value={course.id} />
               <input name="previousSlug" type="hidden" value={course.slug} />
-              <Input name="title" defaultValue={course.title} placeholder={dict.admin.courseName} required />
-              <Input name="slug" defaultValue={course.slug} placeholder="course-slug" required />
-              <Input name="category" defaultValue={course.category} placeholder={dict.admin.category} required />
-              <select
-                className="w-full rounded-base border-2 border-border bg-background px-3 py-2 text-sm font-bold"
-                defaultValue={course.level}
-                name="level"
-              >
-                <option value="Cơ bản">Cơ bản</option>
-                <option value="Trung cấp">Trung cấp</option>
-                <option value="Nâng cao">Nâng cao</option>
-              </select>
-              <Input
-                defaultValue={String(course.durationHours || 1)}
-                min="0.5"
-                name="durationHours"
-                placeholder="Thời lượng giờ"
-                required
-                step="0.5"
-                type="number"
-              />
-              <Input defaultValue={course.accent} name="accent" type="color" />
-              <Textarea
-                className="min-h-28"
-                defaultValue={course.description}
-                name="description"
-                placeholder={dict.admin.description}
-                required
-              />
-              <Textarea
-                className="min-h-28"
-                defaultValue={course.outcomes.join("\n")}
-                name="outcomes"
-                placeholder="Outcomes, mỗi dòng một mục"
-                required
-              />
+              <div className="space-y-2">
+                <Label htmlFor="edit-course-title">Tên khóa học</Label>
+                <Input id="edit-course-title" name="title" defaultValue={course.title} placeholder={dict.admin.courseName} required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-course-slug">Slug</Label>
+                <Input id="edit-course-slug" name="slug" defaultValue={course.slug} placeholder="course-slug" required />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-course-category">{dict.admin.category}</Label>
+                  <Input
+                    id="edit-course-category"
+                    name="category"
+                    defaultValue={course.category}
+                    placeholder={dict.admin.category}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-course-level">{dict.admin.level}</Label>
+                  <select
+                    className="h-10 w-full rounded-base border-2 border-border bg-secondary-background px-3 py-2 text-sm font-base text-foreground outline-none ring-offset-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                    defaultValue={course.level}
+                    id="edit-course-level"
+                    name="level"
+                  >
+                    <option value="Cơ bản">Cơ bản</option>
+                    <option value="Trung cấp">Trung cấp</option>
+                    <option value="Nâng cao">Nâng cao</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-course-duration">Thời lượng giờ</Label>
+                  <Input
+                    defaultValue={String(course.durationHours || 1)}
+                    id="edit-course-duration"
+                    min="0.5"
+                    name="durationHours"
+                    placeholder="Thời lượng giờ"
+                    required
+                    step="0.5"
+                    type="number"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-course-price">Giá VND</Label>
+                  <Input
+                    defaultValue={String(course.priceVnd || 0)}
+                    id="edit-course-price"
+                    min="0"
+                    name="priceVnd"
+                    placeholder="VD: 990000"
+                    required
+                    step="10000"
+                    type="number"
+                  />
+                  <p className="text-xs font-bold text-muted-foreground">Nhập 0 để hiển thị badge Free ở màn user.</p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-course-accent">Accent</Label>
+                <Input className="h-12 p-1" defaultValue={course.accent} id="edit-course-accent" name="accent" type="color" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-course-description">{dict.admin.description}</Label>
+                <Textarea
+                  className="min-h-28"
+                  defaultValue={course.description}
+                  id="edit-course-description"
+                  name="description"
+                  placeholder={dict.admin.description}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-course-outcomes">Outcomes</Label>
+                <Textarea
+                  className="min-h-28"
+                  defaultValue={course.outcomes.join("\n")}
+                  id="edit-course-outcomes"
+                  name="outcomes"
+                  placeholder="Outcomes, mỗi dòng một mục"
+                  required
+                />
+              </div>
               <Button className="w-full" type="submit">{dict.admin.save}</Button>
             </form>
             <h2 className="mt-6 text-xl font-black text-foreground">{dict.admin.publishingInfo}</h2>
@@ -380,6 +444,9 @@ export default async function AdminCourseDetailPage({
               </p>
               <p>
                 <strong>{dict.admin.level}:</strong> {course.level}
+              </p>
+              <p>
+                <strong>Giá:</strong> {formatVnd(course.priceVnd)}
               </p>
               <p>
                 <strong>{dict.admin.published}:</strong> {course.published ? "Yes" : "No"}

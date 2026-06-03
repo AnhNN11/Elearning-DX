@@ -4,6 +4,7 @@ import type {
   AdminUser,
   Certificate,
   Course,
+  CoursePayment,
   Enrollment,
   MentorBooking,
   Profile,
@@ -12,16 +13,19 @@ import { supabasePublishableKey, supabaseUrl } from "@/lib/supabase/config";
 import {
   certificateSelect,
   courseGraphSelect,
+  coursePaymentSelect,
   type AdminRoleRow,
   type AdminUserRow,
   type AppUserRow,
   type AuthUser,
   type BlogPost,
   type BlogPostRow,
+  type BlogPostUpdateInput,
   type BlogPostUpsertInput,
   type CertificateRow,
   type CodeSubmissionInput,
   type CourseCreateInput,
+  type CoursePaymentRow,
   type CourseRecord,
   type CourseRow,
   type CourseUpdateInput,
@@ -50,6 +54,7 @@ import {
   mapBlogPost,
   mapCertificate,
   mapCourse,
+  mapCoursePayment,
   mapEnrollment,
   mapInterviewQuestion,
   mapLandingBlock,
@@ -96,7 +101,7 @@ async function fetchBlogPostsFromRest(locale: "vi" | "en", includeDrafts: boolea
   const url = new URL("/rest/v1/blog_posts", supabaseUrl);
   url.searchParams.set(
     "select",
-    "slug,locale,title,excerpt,category,tags,read_time,published_at,author_name,author_role,mentor_name,source_file_name,cover_image_url,content_md",
+    "slug,locale,title,excerpt,category,tags,read_time,published_at,author_name,author_role,mentor_name,source_file_name,cover_image_url,content_md,published",
   );
   url.searchParams.set("locale", `eq.${locale}`);
   url.searchParams.set("order", "published_at.desc");
@@ -115,7 +120,7 @@ async function fetchBlogPostsFromRest(locale: "vi" | "en", includeDrafts: boolea
 
   if (!response.ok) {
     const legacyUrl = new URL(url);
-    legacyUrl.searchParams.set("select", "slug,locale,title,excerpt,category,tags,read_time,published_at,content_md");
+    legacyUrl.searchParams.set("select", "slug,locale,title,excerpt,category,tags,read_time,published_at,content_md,published");
     response = await fetch(legacyUrl, {
       cache: "no-store",
       headers: {
@@ -174,6 +179,25 @@ export class CoursesRepository {
     return mapCourse(data as CourseRow);
   }
 
+  async findById(courseId: string, includeDrafts = false): Promise<Course | null> {
+    let query = this.supabase
+      .from("courses")
+      .select(courseGraphSelect)
+      .eq("id", courseId);
+
+    if (!includeDrafts) {
+      query = query.eq("published", true);
+    }
+
+    const { data, error } = await query.maybeSingle();
+
+    if (error || !data) {
+      return null;
+    }
+
+    return mapCourse(data as CourseRow);
+  }
+
   async create(input: CourseCreateInput, createdBy: string): Promise<CourseRecord> {
     const { data, error } = await this.supabase
       .from("courses")
@@ -185,6 +209,7 @@ export class CoursesRepository {
         description: input.description,
         thumbnail_url: input.thumbnailUrl || null,
         duration_hours: input.durationHours,
+        price_vnd: input.priceVnd,
         accent: input.accent,
         published: false,
         created_by: createdBy,
@@ -204,6 +229,7 @@ export class CoursesRepository {
       level: input.level,
       description: input.description,
       duration_hours: input.durationHours,
+      price_vnd: input.priceVnd,
       outcomes: input.outcomes,
       accent: input.accent,
       updated_at: new Date().toISOString(),
@@ -225,6 +251,14 @@ export class CoursesRepository {
       .from("courses")
       .update({ published, updated_at: new Date().toISOString() })
       .eq("id", courseId);
+
+    if (error) {
+      throw error;
+    }
+  }
+
+  async delete(courseId: string) {
+    const { error } = await this.supabase.from("courses").delete().eq("id", courseId);
 
     if (error) {
       throw error;
@@ -449,6 +483,157 @@ export class LearningRepository {
       .single();
 
     return assertData(data, error);
+  }
+}
+
+export class PaymentsRepository {
+  constructor(private readonly supabase: OrmClient) {}
+
+  async createCoursePayment(input: {
+    userId: string;
+    courseId: string;
+    orderId: string;
+    amountVnd: number;
+    currency?: string;
+    paymentContent: string;
+    provider?: string;
+    bankCode?: string;
+    bankAccount?: string;
+    bankAccountName?: string;
+    expiresAt: string;
+  }): Promise<CoursePayment> {
+    const { data, error } = await this.supabase
+      .from("course_payments")
+      .insert({
+        user_id: input.userId,
+        course_id: input.courseId,
+        order_id: input.orderId,
+        amount_vnd: input.amountVnd,
+        currency: input.currency ?? "VND",
+        payment_content: input.paymentContent,
+        provider: input.provider ?? "sepay",
+        bank_code: input.bankCode ?? null,
+        bank_account: input.bankAccount ?? null,
+        bank_account_name: input.bankAccountName ?? null,
+        expires_at: input.expiresAt,
+      })
+      .select(coursePaymentSelect)
+      .single();
+
+    return mapCoursePayment(assertData(data as CoursePaymentRow | null, error));
+  }
+
+  async attachProviderPayment(orderId: string, input: {
+    providerPaymentId?: string;
+    bankCode?: string;
+    bankAccount?: string;
+    bankAccountName?: string;
+    qrCode?: string;
+    checkoutUrl?: string;
+    qrImageUrl?: string;
+    transactionId?: string;
+    raw?: unknown;
+  }): Promise<CoursePayment> {
+    const { data, error } = await this.supabase
+      .from("course_payments")
+      .update({
+        qr_code: input.qrCode ?? null,
+        checkout_url: input.checkoutUrl ?? null,
+        qr_image_url: input.qrImageUrl ?? null,
+        bank_code: input.bankCode ?? null,
+        bank_account: input.bankAccount ?? null,
+        bank_account_name: input.bankAccountName ?? null,
+        provider_payment_id: input.providerPaymentId ?? null,
+        provider_transaction_id: input.transactionId ?? null,
+        provider_raw: input.raw ?? null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("order_id", orderId)
+      .select(coursePaymentSelect)
+      .single();
+
+    return mapCoursePayment(assertData(data as CoursePaymentRow | null, error));
+  }
+
+  async findByOrderId(orderId: string): Promise<CoursePayment | null> {
+    const { data, error } = await this.supabase
+      .from("course_payments")
+      .select(coursePaymentSelect)
+      .eq("order_id", orderId)
+      .maybeSingle();
+
+    if (error || !data) {
+      return null;
+    }
+
+    return mapCoursePayment(data as CoursePaymentRow);
+  }
+
+  async findByOrderIdForUser(orderId: string, userId: string): Promise<CoursePayment | null> {
+    const { data, error } = await this.supabase
+      .from("course_payments")
+      .select(coursePaymentSelect)
+      .eq("order_id", orderId)
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (error || !data) {
+      return null;
+    }
+
+    return mapCoursePayment(data as CoursePaymentRow);
+  }
+
+  async markPaid(orderId: string, input: {
+    transactionId?: string;
+    referenceNumber?: string;
+    raw?: unknown;
+  }): Promise<CoursePayment> {
+    const { data, error } = await this.supabase
+      .from("course_payments")
+      .update({
+        status: "paid",
+        paid_at: new Date().toISOString(),
+        provider_transaction_id: input.transactionId ?? null,
+        reference_number: input.referenceNumber ?? null,
+        provider_raw: input.raw ?? null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("order_id", orderId)
+      .select(coursePaymentSelect)
+      .single();
+
+    return mapCoursePayment(assertData(data as CoursePaymentRow | null, error));
+  }
+
+  async markFailed(orderId: string, raw?: unknown): Promise<CoursePayment> {
+    const { data, error } = await this.supabase
+      .from("course_payments")
+      .update({
+        status: "failed",
+        provider_raw: raw ?? null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("order_id", orderId)
+      .select(coursePaymentSelect)
+      .single();
+
+    return mapCoursePayment(assertData(data as CoursePaymentRow | null, error));
+  }
+
+  async markCancelled(orderId: string, raw?: unknown): Promise<CoursePayment> {
+    const { data, error } = await this.supabase
+      .from("course_payments")
+      .update({
+        status: "cancelled",
+        provider_raw: raw ?? null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("order_id", orderId)
+      .select(coursePaymentSelect)
+      .single();
+
+    return mapCoursePayment(assertData(data as CoursePaymentRow | null, error));
   }
 }
 
@@ -814,8 +999,8 @@ export class ContentRepository {
 
   async listBlogPosts(locale: "vi" | "en", includeDrafts = false): Promise<BlogPost[]> {
     const selectWithCover =
-      "slug,locale,title,excerpt,category,tags,read_time,published_at,author_name,author_role,mentor_name,source_file_name,cover_image_url,content_md";
-    const legacySelect = "slug,locale,title,excerpt,category,tags,read_time,published_at,content_md";
+      "slug,locale,title,excerpt,category,tags,read_time,published_at,author_name,author_role,mentor_name,source_file_name,cover_image_url,content_md,published";
+    const legacySelect = "slug,locale,title,excerpt,category,tags,read_time,published_at,content_md,published";
     const buildQuery = (select: string) => {
       let query = this.supabase
         .from("blog_posts")
@@ -850,6 +1035,75 @@ export class ContentRepository {
   }
 
   async upsertBlogPost(input: BlogPostUpsertInput) {
+    const payload = this.buildBlogPostPayload(input, { includeCreatedBy: true });
+
+    let { data, error } = await this.supabase
+      .from("blog_posts")
+      .upsert(payload, { onConflict: "slug,locale" })
+      .select("slug,locale")
+      .single();
+
+    if (isMissingBlogMetadataColumnError(error)) {
+      console.warn(
+        "[blog_posts] Optional metadata columns are missing. Saving core blog content only. Run supabase/schema.sql blog_posts ALTER TABLE statements to persist author/cover metadata.",
+      );
+
+      const legacyResult = await this.supabase
+        .from("blog_posts")
+        .upsert(this.buildLegacyBlogPostPayload(input, { includeCreatedBy: true }), { onConflict: "slug,locale" })
+        .select("slug,locale")
+        .single();
+
+      data = legacyResult.data;
+      error = legacyResult.error;
+    }
+
+    return assertData(data, error);
+  }
+
+  async updateBlogPost(input: BlogPostUpdateInput) {
+    const payload = this.buildBlogPostPayload(input);
+
+    let { data, error } = await this.supabase
+      .from("blog_posts")
+      .update(payload)
+      .eq("slug", input.originalSlug)
+      .eq("locale", input.originalLocale)
+      .select("slug,locale")
+      .single();
+
+    if (isMissingBlogMetadataColumnError(error)) {
+      const legacyResult = await this.supabase
+        .from("blog_posts")
+        .update(this.buildLegacyBlogPostPayload(input))
+        .eq("slug", input.originalSlug)
+        .eq("locale", input.originalLocale)
+        .select("slug,locale")
+        .single();
+
+      data = legacyResult.data;
+      error = legacyResult.error;
+    }
+
+    return assertData(data, error);
+  }
+
+  async deleteBlogPost(slug: string, locale: "vi" | "en") {
+    const { error } = await this.supabase
+      .from("blog_posts")
+      .delete()
+      .eq("slug", slug)
+      .eq("locale", locale);
+
+    if (error) {
+      throw error;
+    }
+  }
+
+  private buildBlogPostPayload(
+    input: BlogPostUpsertInput,
+    options: { includeCreatedBy?: boolean } = {},
+  ): Record<string, unknown> {
     const payload: Record<string, unknown> = {
       title: input.title,
       slug: input.slug,
@@ -865,50 +1119,38 @@ export class ContentRepository {
       content_md: input.content,
       published: input.published,
       published_at: new Date().toISOString(),
-      created_by: input.createdBy,
       updated_at: new Date().toISOString(),
     };
 
-    if (input.coverImageUrl) {
-      payload.cover_image_url = input.coverImageUrl;
+    if (options.includeCreatedBy) {
+      payload.created_by = input.createdBy;
     }
 
-    let { data, error } = await this.supabase
-      .from("blog_posts")
-      .upsert(payload, { onConflict: "slug,locale" })
-      .select("slug,locale")
-      .single();
-
-    if (isMissingBlogMetadataColumnError(error)) {
-      console.warn(
-        "[blog_posts] Optional metadata columns are missing. Saving core blog content only. Run supabase/schema.sql blog_posts ALTER TABLE statements to persist author/cover metadata.",
-      );
-
-      const legacyPayload = {
-        title: input.title,
-        slug: input.slug,
-        excerpt: input.excerpt,
-        category: input.category,
-        tags: input.tags ?? [],
-        read_time: input.readTime,
-        locale: input.locale,
-        content_md: input.content,
-        published: input.published,
-        published_at: new Date().toISOString(),
-        created_by: input.createdBy,
-        updated_at: new Date().toISOString(),
-      };
-      const legacyResult = await this.supabase
-        .from("blog_posts")
-        .upsert(legacyPayload, { onConflict: "slug,locale" })
-        .select("slug,locale")
-        .single();
-
-      data = legacyResult.data;
-      error = legacyResult.error;
+    if (input.coverImageUrl !== undefined) {
+      payload.cover_image_url = input.coverImageUrl || null;
     }
 
-    return assertData(data, error);
+    return payload;
+  }
+
+  private buildLegacyBlogPostPayload(
+    input: BlogPostUpsertInput,
+    options: { includeCreatedBy?: boolean } = {},
+  ) {
+    return {
+      title: input.title,
+      slug: input.slug,
+      excerpt: input.excerpt,
+      category: input.category,
+      tags: input.tags ?? [],
+      read_time: input.readTime,
+      locale: input.locale,
+      content_md: input.content,
+      published: input.published,
+      published_at: new Date().toISOString(),
+      ...(options.includeCreatedBy ? { created_by: input.createdBy } : {}),
+      updated_at: new Date().toISOString(),
+    };
   }
 
   async listInterviewQuestions(locale: "vi" | "en", includeDrafts = false): Promise<InterviewQuestion[]> {

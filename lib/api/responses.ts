@@ -18,6 +18,8 @@ const zodFieldLabels: Record<string, string> = {
   description: "Mô tả",
   thumbnailUrl: "Link ảnh",
   durationHours: "Thời lượng",
+  priceVnd: "Giá khóa học",
+  currency: "Tiền tệ",
   outcomes: "Bạn sẽ học được",
   level: "Trình độ",
 };

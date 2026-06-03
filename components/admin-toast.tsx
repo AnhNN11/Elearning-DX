@@ -30,13 +30,17 @@ const toastMessages: Record<string, { title: string; description: string; type?:
     title: "Đã tạo khóa học",
     description: "Khóa học mới đã sẵn sàng để cấu hình lesson, YouTube và tài liệu.",
   },
+  "course-deleted": {
+    title: "Đã xóa khóa học",
+    description: "Khóa học và dữ liệu liên quan đã được gỡ khỏi trang admin.",
+  },
   "course-published": {
     title: "Đã lưu trạng thái xuất bản",
     description: "Trạng thái public/draft của khóa học đã được cập nhật.",
   },
   "course-saved": {
     title: "Đã lưu cấu hình khóa học",
-    description: "Thông tin tổng quan, outcomes và thời lượng đã được cập nhật.",
+    description: "Thông tin tổng quan, outcomes, thời lượng và giá đã được cập nhật.",
   },
   "interview-created": {
     title: "Đã thêm câu hỏi",
@@ -49,6 +53,10 @@ const toastMessages: Record<string, { title: string; description: string; type?:
   "lesson-saved": {
     title: "Đã lưu lesson",
     description: "Nội dung Markdown, thời lượng và link video đã được cập nhật.",
+  },
+  "blog-deleted": {
+    title: "Đã xóa bài blog",
+    description: "Bài viết đã được gỡ khỏi danh sách nội dung.",
   },
   "landing-saved": {
     title: "Đã lưu landing page",

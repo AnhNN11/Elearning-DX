@@ -76,6 +76,8 @@ export type Course = {
   category: string;
   level: Level;
   durationHours: number;
+  priceVnd: number;
+  currency: string;
   published: boolean;
   accent: string;
   thumbnailUrl?: string;
@@ -103,6 +105,35 @@ export type Enrollment = {
   courseId: string;
   progressPercent: number;
   completedAt?: string;
+};
+
+export type PaymentStatus = "pending" | "paid" | "failed" | "expired" | "cancelled";
+
+export type CoursePayment = {
+  id: string;
+  orderId: string;
+  userId: string;
+  courseId: string;
+  courseSlug?: string;
+  courseTitle?: string;
+  amountVnd: number;
+  currency: string;
+  status: PaymentStatus;
+  paymentContent: string;
+  provider: string;
+  providerPaymentId?: string;
+  providerRaw?: unknown;
+  bankCode?: string;
+  bankAccount?: string;
+  bankAccountName?: string;
+  qrCode?: string;
+  checkoutUrl?: string;
+  qrImageUrl?: string;
+  providerTransactionId?: string;
+  referenceNumber?: string;
+  paidAt?: string;
+  expiresAt: string;
+  createdAt: string;
 };
 
 export type Certificate = {

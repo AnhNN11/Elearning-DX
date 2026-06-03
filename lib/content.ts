@@ -7,6 +7,7 @@ import type { LandingBlock } from "./types";
 export type Mentor = {
   name: string;
   role: string;
+  avatarUrl: string;
   expertise: string[];
   schedule: string;
 };
@@ -18,18 +19,21 @@ export const mentors: Mentor[] = [
   {
     name: "Anh Minh",
     role: "Senior Fullstack Engineer",
+    avatarUrl: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=320&q=85",
     expertise: ["Next.js", "System Design", "Supabase"],
     schedule: "Tối thứ 3 và thứ 5",
   },
   {
     name: "Chị Linh",
     role: "AI Product Lead",
+    avatarUrl: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=320&q=85",
     expertise: ["AI workflow", "Prompt design", "Portfolio review"],
     schedule: "Cuối tuần",
   },
   {
     name: "Anh Khoa",
     role: "DevOps Mentor",
+    avatarUrl: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=320&q=85",
     expertise: ["Cloud", "CI/CD", "Interview coaching"],
     schedule: "Trưa thứ 2-4",
   },
@@ -43,7 +47,7 @@ async function getBlogPostsFromRest(locale: "vi" | "en", includeDrafts = false) 
   const url = new URL("/rest/v1/blog_posts", supabaseUrl);
   url.searchParams.set(
     "select",
-    "slug,locale,title,excerpt,category,tags,read_time,published_at,author_name,author_role,mentor_name,source_file_name,cover_image_url,content_md",
+    "slug,locale,title,excerpt,category,tags,read_time,published_at,author_name,author_role,mentor_name,source_file_name,cover_image_url,content_md,published",
   );
   url.searchParams.set("locale", `eq.${locale}`);
   url.searchParams.set("order", "published_at.desc");
@@ -62,7 +66,7 @@ async function getBlogPostsFromRest(locale: "vi" | "en", includeDrafts = false) 
 
   if (!response.ok) {
     const legacyUrl = new URL(url);
-    legacyUrl.searchParams.set("select", "slug,locale,title,excerpt,category,tags,read_time,published_at,content_md");
+    legacyUrl.searchParams.set("select", "slug,locale,title,excerpt,category,tags,read_time,published_at,content_md,published");
     response = await fetch(legacyUrl, {
       cache: "no-store",
       headers: {

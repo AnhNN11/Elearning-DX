@@ -1,9 +1,13 @@
 import { AdminShell } from "@/components/admin-shell";
 import { AdminBlogComposer } from "@/components/admin-blog-composer";
+import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import Image from "next/image";
+import Link from "next/link";
+import { ExternalLink, Pencil, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { createBlogPostAction } from "@/lib/actions";
+import { createBlogPostAction, deleteBlogPostAction, updateBlogPostAction } from "@/lib/actions";
 import { getBlogPosts, mentors } from "@/lib/content";
 import { getLocale } from "@/lib/i18n/server";
 
@@ -32,9 +36,9 @@ export default async function AdminBlogPage() {
 
       <Card className="mt-8">
         <CardHeader>
-          <CardTitle className="text-2xl font-black text-foreground">Bài viết đã xuất bản</CardTitle>
+          <CardTitle className="text-2xl font-black text-foreground">Bài viết trong hệ thống</CardTitle>
         </CardHeader>
-        <CardContent className="grid gap-4 lg:grid-cols-2">
+        <CardContent className="grid gap-4">
           {posts.map((post) => (
             <div className="rounded-base border-2 border-border bg-secondary-background p-4" key={`${post.locale}-${post.slug}`}>
               {post.coverImageUrl && (
@@ -53,6 +57,7 @@ export default async function AdminBlogPage() {
                 <Badge>{post.category}</Badge>
                 <Badge variant="outline">{post.readTime}</Badge>
                 <Badge variant="secondary">{post.mentorName}</Badge>
+                <Badge variant={post.published ? "default" : "outline"}>{post.published ? "Published" : "Draft"}</Badge>
                 {post.sourceFileName && <Badge variant="outline">.md: {post.sourceFileName}</Badge>}
               </div>
               <h2 className="mt-3 text-xl font-black text-foreground">{post.title}</h2>
@@ -60,6 +65,45 @@ export default async function AdminBlogPage() {
                 {post.authorName}{post.authorRole ? ` · ${post.authorRole}` : ""}
               </p>
               <p className="mt-2 text-sm leading-6 text-muted-foreground">{post.excerpt}</p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {post.published && (
+                  <Button asChild size="sm" variant="outline">
+                    <Link href={`/blog/${post.slug}`} target="_blank">
+                      <ExternalLink className="size-4" />
+                      Xem public
+                    </Link>
+                  </Button>
+                )}
+                <form action={deleteBlogPostAction}>
+                  <input name="slug" type="hidden" value={post.slug} />
+                  <input name="locale" type="hidden" value={post.locale} />
+                  <ConfirmSubmitButton
+                    confirmMessage={`Xoá bài "${post.title}"? Hành động này không thể hoàn tác.`}
+                    size="sm"
+                    type="submit"
+                    variant="destructive"
+                  >
+                    <Trash2 className="size-4" />
+                    Xoá
+                  </ConfirmSubmitButton>
+                </form>
+              </div>
+              <details className="mt-4">
+                <summary className="inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-base border-2 border-border bg-card px-3 text-xs font-black shadow-shadow transition hover:translate-x-boxShadowX hover:translate-y-boxShadowY hover:shadow-none">
+                  <Pencil className="size-4" />
+                  Chỉnh sửa
+                </summary>
+                <div className="mt-4">
+                  <AdminBlogComposer
+                    action={updateBlogPostAction}
+                    defaultLocale={locale}
+                    heading={`Chỉnh sửa: ${post.title}`}
+                    initialPost={post}
+                    mentors={mentors}
+                    submitLabel="Cập nhật bài viết"
+                  />
+                </div>
+              </details>
             </div>
           ))}
         </CardContent>

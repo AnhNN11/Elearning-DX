@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { AppHeader } from "@/components/app-header";
 import { Pill, SectionHeader } from "@/components/ui";
 import { Badge } from "@/components/ui/badge";
@@ -26,6 +26,11 @@ export default async function CourseLearnPage({
   }
   const enrollments = await getUserEnrollments(profile.id);
   const enrollment = enrollments.find((item) => item.courseId === course.id);
+
+  if (!enrollment) {
+    redirect(`/courses/${course.slug}`);
+  }
+
   const progress = enrollment?.progressPercent ?? 0;
   const resources = course.assets.filter((asset) => asset.kind !== "banner");
 

@@ -1,8 +1,9 @@
 import Link from "next/link";
 import Image from "next/image";
-import { BookOpen, Filter, PlusCircle, Search, UploadCloud, Video } from "lucide-react";
+import { BookOpen, Filter, Pencil, PlusCircle, Search, Trash2, UploadCloud, Video } from "lucide-react";
 import { AdminShell } from "@/components/admin-shell";
 import { AdminCourseComposer } from "@/components/admin-course-composer";
+import { ConfirmSubmitButton } from "@/components/confirm-submit-button";
 import { Pill } from "@/components/ui";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -10,11 +11,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { createCourseAction, updateCoursePublishAction } from "@/lib/actions";
+import { createCourseAction, deleteCourseAction, updateCoursePublishAction } from "@/lib/actions";
 import { getCourseLessonCount, getCourses } from "@/lib/data";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import { getLocale } from "@/lib/i18n/server";
 import { markdownToPlainText } from "@/lib/markdown-text";
+import { formatVnd } from "@/lib/money";
 
 export default async function AdminCoursesPage({
   searchParams,
@@ -144,10 +146,12 @@ export default async function AdminCoursesPage({
                   <TableHead>Banner</TableHead>
                   <TableHead>{dict.admin.course}</TableHead>
                   <TableHead>{dict.admin.category}</TableHead>
+                  <TableHead>Giá</TableHead>
                   <TableHead>{dict.admin.lessons}</TableHead>
                   <TableHead>YouTube</TableHead>
                   <TableHead>Tài liệu</TableHead>
                   <TableHead>{dict.admin.status}</TableHead>
+                  <TableHead>Hành động</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -187,6 +191,7 @@ export default async function AdminCoursesPage({
                       <TableCell>
                         <Pill>{course.category}</Pill>
                       </TableCell>
+                      <TableCell className="font-heading text-primary">{formatVnd(course.priceVnd)}</TableCell>
                       <TableCell>{getCourseLessonCount(course)}</TableCell>
                       <TableCell>
                         <Badge variant={videoCount === lessons.length && lessons.length > 0 ? "default" : "outline"}>
@@ -210,12 +215,35 @@ export default async function AdminCoursesPage({
                           </Button>
                         </form>
                       </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-2">
+                          <Button asChild size="sm" variant="outline">
+                            <Link href={`/admin/courses/${course.id}`}>
+                              <Pencil className="size-4" />
+                              Sửa
+                            </Link>
+                          </Button>
+                          <form action={deleteCourseAction}>
+                            <input name="courseId" type="hidden" value={course.id} />
+                            <input name="courseSlug" type="hidden" value={course.slug} />
+                            <ConfirmSubmitButton
+                              confirmMessage={`Xoá khóa "${course.title}"? Hành động này sẽ xoá cả lesson, tài liệu và dữ liệu ghi danh liên quan.`}
+                              size="sm"
+                              type="submit"
+                              variant="destructive"
+                            >
+                              <Trash2 className="size-4" />
+                              Xoá
+                            </ConfirmSubmitButton>
+                          </form>
+                        </div>
+                      </TableCell>
                     </TableRow>
                   );
                 })}
                 {!filteredCourses.length && (
                   <TableRow>
-                    <TableCell className="whitespace-normal py-8 text-center text-sm text-muted-foreground" colSpan={7}>
+                    <TableCell className="whitespace-normal py-8 text-center text-sm text-muted-foreground" colSpan={9}>
                       Không có khóa học phù hợp bộ lọc.
                     </TableCell>
                   </TableRow>

@@ -9,12 +9,16 @@ import { getLocale } from "@/lib/i18n/server";
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ error?: string }>;
+  searchParams?: Promise<{ error?: string; next?: string }>;
 }) {
   const locale = await getLocale();
   const dict = getDictionary(locale);
   const params = await searchParams;
   const isVietnamese = locale === "vi";
+  const redirectTo =
+    params?.next && params.next.startsWith("/") && !params.next.startsWith("//")
+      ? params.next
+      : "/learn";
 
   return (
     <main className="min-h-screen bg-background">
@@ -75,7 +79,7 @@ export default async function LoginPage({
                   : "Google sign-in could not be completed. Try again or check the Google provider in Supabase Auth."}
               </div>
             )}
-            <LoginForm className="border-beam-card" copy={dict.auth} />
+            <LoginForm className="border-beam-card" copy={dict.auth} redirectTo={redirectTo} />
           </div>
         </div>
       </section>

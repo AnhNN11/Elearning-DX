@@ -22,6 +22,7 @@ export function MobileHeaderMenu({
   navItems,
   searchCopy,
   searchItems,
+  startHref,
   startLabel,
 }: {
   className?: string;
@@ -29,6 +30,7 @@ export function MobileHeaderMenu({
   navItems: HeaderNavItem[];
   searchCopy: Dictionary["search"];
   searchItems: GlobalSearchItem[];
+  startHref: string;
   startLabel: string;
 }) {
   const pathname = usePathname();
@@ -75,7 +77,7 @@ export function MobileHeaderMenu({
           <div className="mt-3 grid gap-3 sm:hidden">
             <LanguageSwitcher className="h-10 w-full" locale={locale} tone="light" />
             <Button asChild className="h-10 w-full text-sm">
-              <Link href="/login" onClick={() => setOpen(false)}>
+              <Link href={startHref} onClick={() => setOpen(false)}>
                 {startLabel}
               </Link>
             </Button>

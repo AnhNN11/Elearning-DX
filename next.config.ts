@@ -20,6 +20,11 @@ const remotePatterns: NonNullable<NonNullable<NextConfig["images"]>["remotePatte
     hostname: "upload-services.limgrow.com",
     pathname: "/uploads/**",
   },
+  {
+    protocol: "https",
+    hostname: "qr.sepay.vn",
+    pathname: "/img",
+  },
 ];
 
 if (supabaseHostname) {

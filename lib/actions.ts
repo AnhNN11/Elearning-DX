@@ -8,10 +8,15 @@ type ApiPayload = {
   ok?: boolean;
   error?: string;
   url?: string;
+  checkoutUrl?: string;
   course?: {
     id: string;
     slug: string;
     title?: string;
+  };
+  post?: {
+    locale?: string;
+    slug: string;
   };
 };
 
@@ -46,6 +51,7 @@ async function callApi(
   formData?: FormData,
   options: {
     admin?: boolean;
+    loginNext?: string;
     method?: "DELETE" | "POST" | "PATCH";
   } = {},
 ) {
@@ -66,7 +72,11 @@ async function callApi(
   const payload = (await response.json().catch(() => ({}))) as ApiPayload;
 
   if (response.status === 401) {
-    redirect(options.admin ? "/admin/login" : "/login");
+    const loginNext =
+      options.loginNext && options.loginNext.startsWith("/") && !options.loginNext.startsWith("//")
+        ? `?next=${encodeURIComponent(options.loginNext)}`
+        : "";
+    redirect(options.admin ? "/admin/login" : `/login${loginNext}`);
   }
 
   if (response.status === 403) {
@@ -128,10 +138,22 @@ function redirectWithToast(
 
 export async function enrollCourseAction(formData: FormData) {
   const courseSlug = formValue(formData, "courseSlug");
-  await callApi("/api/enrollments", formData);
+  await callApi("/api/enrollments", formData, {
+    loginNext: `/courses/${courseSlug}`,
+  });
 
   revalidatePath("/learn");
   redirect(`/learn/${courseSlug}`);
+}
+
+export async function checkoutCourseAction(formData: FormData) {
+  const courseSlug = formValue(formData, "courseSlug");
+  const payload = await callApi("/api/payments/sepay/checkout", formData, {
+    loginNext: `/courses/${courseSlug}`,
+  });
+
+  revalidatePath(`/courses/${courseSlug}`);
+  redirect(payload.checkoutUrl ?? `/courses/${courseSlug}`);
 }
 
 export async function createCourseAction(formData: FormData) {
@@ -155,6 +177,23 @@ export async function updateCourseAction(formData: FormData) {
   revalidatePath("/admin/courses");
   revalidatePath(`/admin/courses/${courseId}`);
   redirectWithToast(`/admin/courses/${courseId}`, "course-saved");
+}
+
+export async function deleteCourseAction(formData: FormData) {
+  const courseId = formValue(formData, "courseId");
+  const courseSlug = formValue(formData, "courseSlug");
+  await callAdminApiOrToast(`/api/admin/courses/${courseId}`, undefined, "/admin/courses", {
+    method: "DELETE",
+  });
+
+  revalidatePath("/courses");
+  revalidatePath("/learn");
+  if (courseSlug) {
+    revalidatePath(`/courses/${courseSlug}`);
+    revalidatePath(`/learn/${courseSlug}`);
+  }
+  revalidatePath("/admin/courses");
+  redirectWithToast("/admin/courses", "course-deleted");
 }
 
 export async function updateCoursePublishAction(formData: FormData) {
@@ -276,6 +315,38 @@ export async function createBlogPostAction(formData: FormData) {
   revalidatePath(`/blog/${slug}`);
   revalidatePath("/admin/blog");
   redirectWithToast("/admin/blog", "blog-saved");
+}
+
+export async function updateBlogPostAction(formData: FormData) {
+  const previousSlug = formValue(formData, "previousSlug");
+  const slug = formValue(formData, "slug") || previousSlug;
+  await callAdminApiOrToast("/api/admin/blog-posts", formData, "/admin/blog", {
+    method: "PATCH",
+  });
+
+  revalidatePath("/blog");
+  if (previousSlug) {
+    revalidatePath(`/blog/${previousSlug}`);
+  }
+  if (slug) {
+    revalidatePath(`/blog/${slug}`);
+  }
+  revalidatePath("/admin/blog");
+  redirectWithToast("/admin/blog", "blog-saved");
+}
+
+export async function deleteBlogPostAction(formData: FormData) {
+  const slug = formValue(formData, "slug");
+  await callAdminApiOrToast("/api/admin/blog-posts", formData, "/admin/blog", {
+    method: "DELETE",
+  });
+
+  revalidatePath("/blog");
+  if (slug) {
+    revalidatePath(`/blog/${slug}`);
+  }
+  revalidatePath("/admin/blog");
+  redirectWithToast("/admin/blog", "blog-deleted");
 }
 
 export async function upsertLandingBlockAction(formData: FormData) {

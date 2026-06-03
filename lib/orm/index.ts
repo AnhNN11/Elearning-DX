@@ -8,6 +8,7 @@ import {
   ContentRepository,
   CoursesRepository,
   LearningRepository,
+  PaymentsRepository,
   UsersRepository,
 } from "./repositories";
 
@@ -18,6 +19,7 @@ export class SupabaseOrm {
   readonly content: ContentRepository;
   readonly courses: CoursesRepository;
   readonly learning: LearningRepository;
+  readonly payments: PaymentsRepository;
   readonly users: UsersRepository;
 
   constructor(readonly supabase: SupabaseClient) {
@@ -27,6 +29,7 @@ export class SupabaseOrm {
     this.content = new ContentRepository(supabase);
     this.courses = new CoursesRepository(supabase);
     this.learning = new LearningRepository(supabase);
+    this.payments = new PaymentsRepository(supabase);
     this.users = new UsersRepository(supabase);
   }
 }

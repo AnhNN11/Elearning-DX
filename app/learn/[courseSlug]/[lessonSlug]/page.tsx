@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { AppHeader } from "@/components/app-header";
 import { CodeRunner } from "@/components/code-runner";
 import { MarkdownViewer } from "@/components/markdown-viewer";
@@ -8,7 +8,7 @@ import { Pill } from "@/components/ui";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { completeLessonAction } from "@/lib/actions";
-import { getLesson, getNextLesson } from "@/lib/data";
+import { getLesson, getNextLesson, getUserEnrollments } from "@/lib/data";
 import { requireUser } from "@/lib/auth";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import { getLocale } from "@/lib/i18n/server";
@@ -19,7 +19,7 @@ export default async function LessonPage({
 }: {
   params: Promise<{ courseSlug: string; lessonSlug: string }>;
 }) {
-  await requireUser();
+  const profile = await requireUser();
   const { courseSlug, lessonSlug } = await params;
   const locale = await getLocale();
   const dict = getDictionary(locale);
@@ -27,6 +27,13 @@ export default async function LessonPage({
 
   if (!course || !lesson) {
     notFound();
+  }
+
+  const enrollments = await getUserEnrollments(profile.id);
+  const enrollment = enrollments.find((item) => item.courseId === course.id);
+
+  if (!enrollment) {
+    redirect(`/courses/${course.slug}`);
   }
 
   const nextLesson = getNextLesson(course, lesson);

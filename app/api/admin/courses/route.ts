@@ -27,6 +27,7 @@ export async function POST(request: Request) {
       description: formText(formData, "description"),
       thumbnailUrl: formText(formData, "thumbnailUrl") || undefined,
       durationHours: formText(formData, "durationHours") || "1",
+      priceVnd: formText(formData, "priceVnd") || "0",
       outcomes: formText(formData, "outcomes") || "Hoàn thành nội dung khóa học\nLàm bài kiểm tra\nNhận chứng chỉ",
       accent: formText(formData, "accent") || "#075bbb",
     });

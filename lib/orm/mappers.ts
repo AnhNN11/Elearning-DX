@@ -6,6 +6,7 @@ import type {
   Course,
   CourseAsset,
   CourseModule,
+  CoursePayment,
   Enrollment,
   LandingBlock,
   Lesson,
@@ -23,6 +24,7 @@ import type {
   BlogPostRow,
   CertificateRow,
   CourseAssetRow,
+  CoursePaymentRow,
   CourseRow,
   EnrollmentProgressRow,
   EnrollmentRow,
@@ -115,6 +117,8 @@ export function mapCourse(row: CourseRow): Course {
     category: row.category,
     level: row.level,
     durationHours: row.duration_hours ?? 0,
+    priceVnd: row.price_vnd ?? 0,
+    currency: row.currency ?? "VND",
     published: row.published ?? false,
     accent: row.accent ?? "#075bbb",
     thumbnailUrl: row.thumbnail_url ?? bannerAsset?.publicUrl,
@@ -137,6 +141,37 @@ export function mapCourse(row: CourseRow): Course {
               : undefined,
           })) ?? [],
       })) ?? [],
+  };
+}
+
+export function mapCoursePayment(row: CoursePaymentRow): CoursePayment {
+  const course = Array.isArray(row.courses) ? row.courses[0] : row.courses;
+
+  return {
+    id: row.id,
+    orderId: row.order_id,
+    userId: row.user_id,
+    courseId: row.course_id,
+    courseSlug: course?.slug,
+    courseTitle: course?.title,
+    amountVnd: row.amount_vnd,
+    currency: row.currency ?? "VND",
+    status: row.status,
+    paymentContent: row.payment_content,
+    provider: row.provider ?? "sepay",
+    providerPaymentId: row.provider_payment_id ?? undefined,
+    providerRaw: row.provider_raw ?? undefined,
+    bankCode: row.bank_code ?? undefined,
+    bankAccount: row.bank_account ?? undefined,
+    bankAccountName: row.bank_account_name ?? undefined,
+    qrCode: row.qr_code ?? undefined,
+    checkoutUrl: row.checkout_url ?? undefined,
+    qrImageUrl: row.qr_image_url ?? undefined,
+    providerTransactionId: row.provider_transaction_id ?? undefined,
+    referenceNumber: row.reference_number ?? undefined,
+    paidAt: row.paid_at ?? undefined,
+    expiresAt: row.expires_at,
+    createdAt: row.created_at,
   };
 }
 
@@ -271,6 +306,7 @@ export function mapBlogPost(row: BlogPostRow): BlogPost {
     sourceFileName: row.source_file_name ?? undefined,
     coverImageUrl: row.cover_image_url ?? undefined,
     content: (row.content_md ?? "").split(/\n{2,}/).filter(Boolean),
+    published: row.published ?? false,
   };
 }
 

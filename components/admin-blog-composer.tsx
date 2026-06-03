@@ -20,7 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import type { Mentor } from "@/lib/content";
+import type { BlogPost, Mentor } from "@/lib/content";
 
 type BlogAction = (formData: FormData) => void | Promise<void>;
 
@@ -58,40 +58,56 @@ function estimateReadTime(content: string, locale: "vi" | "en") {
 export function AdminBlogComposer({
   action,
   defaultLocale,
+  heading,
+  initialPost,
   mentors,
+  submitLabel,
 }: {
   action: BlogAction;
   defaultLocale: "vi" | "en";
+  heading?: string;
+  initialPost?: BlogPost;
   mentors: Mentor[];
+  submitLabel?: string;
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const [title, setTitle] = useState("");
-  const [slug, setSlug] = useState("");
-  const [slugTouched, setSlugTouched] = useState(false);
-  const [excerpt, setExcerpt] = useState("");
-  const [category, setCategory] = useState("Engineering");
-  const [coverImageUrl, setCoverImageUrl] = useState("");
+  const initialLocale = initialPost?.locale ?? defaultLocale;
+  const composerHeading = heading ?? (initialPost ? "Chỉnh sửa bài Markdown" : "Soạn bài Markdown");
+  const buttonLabel = submitLabel ?? (initialPost ? "Cập nhật bài viết" : "Lưu bài viết");
+  const [title, setTitle] = useState(initialPost?.title ?? "");
+  const [slug, setSlug] = useState(initialPost?.slug ?? "");
+  const [slugTouched, setSlugTouched] = useState(Boolean(initialPost));
+  const [excerpt, setExcerpt] = useState(initialPost?.excerpt ?? "");
+  const [category, setCategory] = useState(initialPost?.category ?? "Engineering");
+  const [coverImageUrl, setCoverImageUrl] = useState(initialPost?.coverImageUrl ?? "");
   const [coverPreviewUrl, setCoverPreviewUrl] = useState("");
   const [coverFileName, setCoverFileName] = useState("");
-  const [tags, setTags] = useState("nextjs, supabase");
-  const [readTime, setReadTime] = useState("");
-  const [authorName, setAuthorName] = useState(mentors[0]?.name ?? "DolphinX Mentor");
-  const [authorRole, setAuthorRole] = useState(mentors[0]?.role ?? "");
-  const [mentorName, setMentorName] = useState(mentors[0]?.name ?? "");
-  const [locale, setLocale] = useState<"vi" | "en">(defaultLocale);
-  const [published, setPublished] = useState(true);
-  const [content, setContent] = useState(starterMarkdown);
+  const [tags, setTags] = useState(initialPost?.tags.join(", ") ?? "nextjs, supabase");
+  const [readTime, setReadTime] = useState(initialPost?.readTime ?? "");
+  const [authorName, setAuthorName] = useState(initialPost?.authorName ?? mentors[0]?.name ?? "DolphinX Mentor");
+  const [authorRole, setAuthorRole] = useState(initialPost?.authorRole ?? mentors[0]?.role ?? "");
+  const [mentorName, setMentorName] = useState(initialPost?.mentorName ?? mentors[0]?.name ?? "");
+  const [locale, setLocale] = useState<"vi" | "en">(initialLocale);
+  const [published, setPublished] = useState(initialPost?.published ?? true);
+  const [content, setContent] = useState(initialPost?.content.join("\n\n") || starterMarkdown);
   const [linkUrl, setLinkUrl] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [imageAlt, setImageAlt] = useState("Ảnh minh họa");
   const [imageUploadStatus, setImageUploadStatus] = useState("");
 
   const previewReadTime = readTime || estimateReadTime(content, locale);
+  const initialPublishedAt = initialPost?.publishedAt;
   const previewDate = useMemo(
-    () => new Date().toLocaleDateString(locale === "vi" ? "vi-VN" : "en-US"),
-    [locale],
+    () =>
+      initialPublishedAt
+        ? new Date(initialPublishedAt).toLocaleDateString(locale === "vi" ? "vi-VN" : "en-US")
+        : locale === "vi"
+          ? "Hôm nay"
+          : "Today",
+    [initialPublishedAt, locale],
   );
   const previewCover = coverPreviewUrl || coverImageUrl;
+  const hasCustomMentor = Boolean(mentorName && !mentors.some((mentor) => mentor.name === mentorName));
 
   useEffect(() => {
     return () => {
@@ -225,11 +241,18 @@ export function AdminBlogComposer({
 
   return (
     <form action={action} className="grid gap-6">
+      {initialPost && (
+        <>
+          <input name="previousSlug" type="hidden" value={initialPost.slug} />
+          <input name="previousLocale" type="hidden" value={initialPost.locale} />
+          <input name="sourceFileName" type="hidden" value={initialPost.sourceFileName ?? ""} />
+        </>
+      )}
       <Card className="overflow-hidden bg-card shadow-none">
         <CardHeader className="border-b-2 border-border bg-card">
           <p className="text-sm font-black uppercase text-primary">Blog composer</p>
           <CardTitle className="mt-2 text-2xl font-black text-foreground">
-            Soạn bài Markdown
+            {composerHeading}
           </CardTitle>
         </CardHeader>
         <CardContent className="grid gap-5 pt-6">
@@ -328,6 +351,11 @@ export function AdminBlogComposer({
                 onChange={(event) => chooseMentor(event.target.value)}
                 value={mentorName}
               >
+                {hasCustomMentor && (
+                  <option value={mentorName}>
+                    {mentorName}{authorRole ? ` - ${authorRole}` : ""}
+                  </option>
+                )}
                 {mentors.map((mentor) => (
                   <option key={mentor.name} value={mentor.name}>
                     {mentor.name} - {mentor.role}
@@ -547,7 +575,7 @@ export function AdminBlogComposer({
               </div>
             </article>
             <Button className="mt-6 w-full" type="submit">
-              Lưu bài viết
+              {buttonLabel}
             </Button>
           </CardContent>
         </Card>

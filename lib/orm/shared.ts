@@ -7,6 +7,7 @@ import type {
   Course,
   CourseAsset,
   CourseModule,
+  CoursePayment,
   Enrollment,
   LandingBlock,
   LandingBlockItem,
@@ -82,6 +83,8 @@ export type CourseRow = {
   category: string;
   level: Course["level"];
   duration_hours: number | null;
+  price_vnd: number | null;
+  currency: string | null;
   published: boolean | null;
   accent: string | null;
   thumbnail_url: string | null;
@@ -96,6 +99,32 @@ export type EnrollmentRow = {
   course_id: string;
   progress_percent: number | null;
   completed_at: string | null;
+};
+
+export type CoursePaymentRow = {
+  id: string;
+  order_id: string;
+  user_id: string;
+  course_id: string;
+  amount_vnd: number;
+  currency: string | null;
+  status: CoursePayment["status"];
+  payment_content: string;
+  provider: string | null;
+  provider_payment_id: string | null;
+  bank_code: string | null;
+  bank_account: string | null;
+  bank_account_name: string | null;
+  qr_code: string | null;
+  checkout_url: string | null;
+  qr_image_url: string | null;
+  provider_transaction_id: string | null;
+  reference_number: string | null;
+  provider_raw: unknown;
+  paid_at: string | null;
+  expires_at: string;
+  created_at: string;
+  courses?: { id: string; slug: string; title: string } | { id: string; slug: string; title: string }[] | null;
 };
 
 export type EnrollmentProgressRow = {
@@ -184,6 +213,7 @@ export type BlogPost = {
   sourceFileName?: string;
   coverImageUrl?: string;
   content: string[];
+  published: boolean;
 };
 
 export type BlogPostRow = {
@@ -201,6 +231,7 @@ export type BlogPostRow = {
   source_file_name: string | null;
   cover_image_url: string | null;
   content_md: string | null;
+  published: boolean | null;
 };
 
 export type LandingBlockRow = {
@@ -252,6 +283,7 @@ export type CourseCreateInput = {
   description: string;
   thumbnailUrl?: string;
   durationHours: number;
+  priceVnd: number;
   outcomes: string[];
   accent: string;
 };
@@ -306,6 +338,11 @@ export type BlogPostUpsertInput = {
   content: string;
   published: boolean;
   createdBy: string;
+};
+
+export type BlogPostUpdateInput = BlogPostUpsertInput & {
+  originalSlug: string;
+  originalLocale: "vi" | "en";
 };
 
 export type LandingBlockUpsertInput = {
@@ -397,3 +434,8 @@ export const courseGraphSelect = `
 `;
 
 export const certificateSelect = "id,certificate_no,issued_at,profiles(full_name,email),courses(title)";
+
+export const coursePaymentSelect = `
+  *,
+  courses(id,slug,title)
+`;

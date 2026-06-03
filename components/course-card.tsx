@@ -5,7 +5,9 @@ import Link from "next/link";
 import type { Course } from "@/lib/types";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
 import { markdownToPlainText } from "@/lib/markdown-text";
+import { formatVnd } from "@/lib/money";
 import { Pill } from "./ui";
+import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "./ui/card";
 
@@ -18,6 +20,7 @@ export function CourseCard({
 }) {
   const lessonCount = course.modules.reduce((total, item) => total + item.lessons.length, 0);
   const description = markdownToPlainText(course.description);
+  const isFree = course.priceVnd <= 0;
 
   return (
     <Card className="group min-h-[300px] overflow-hidden py-0 transition hover:-translate-y-1 hover:shadow-md">
@@ -36,11 +39,17 @@ export function CourseCard({
           </div>
         )}
         <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-foreground/55 to-transparent" />
+        {isFree && (
+          <Badge className="absolute left-3 top-3 border-background bg-main text-main-foreground shadow-shadow">
+            Free
+          </Badge>
+        )}
       </div>
       <CardHeader className="pt-5">
         <div className="flex flex-wrap gap-2">
           <Pill>{course.category}</Pill>
           <Pill>{course.level}</Pill>
+          <Pill>{formatVnd(course.priceVnd)}</Pill>
         </div>
         <CardTitle className="mt-4 text-xl font-black">{course.title}</CardTitle>
       </CardHeader>

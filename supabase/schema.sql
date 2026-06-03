@@ -290,6 +290,8 @@ create table if not exists public.courses (
   category text not null,
   level text not null default 'Cơ bản',
   duration_hours numeric not null default 0,
+  price_vnd integer not null default 0 check (price_vnd >= 0),
+  currency text not null default 'VND',
   thumbnail_url text,
   accent text not null default '#075bbb',
   outcomes text[] not null default '{}',
@@ -298,6 +300,9 @@ create table if not exists public.courses (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.courses add column if not exists price_vnd integer not null default 0 check (price_vnd >= 0);
+alter table public.courses add column if not exists currency text not null default 'VND';
 
 create table if not exists public.course_assets (
   id uuid primary key default gen_random_uuid(),
@@ -345,6 +350,38 @@ create table if not exists public.enrollments (
   created_at timestamptz not null default now(),
   unique (user_id, course_id)
 );
+
+create table if not exists public.course_payments (
+  id uuid primary key default gen_random_uuid(),
+  order_id text not null unique,
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  course_id uuid not null references public.courses(id) on delete cascade,
+  amount_vnd integer not null check (amount_vnd >= 0),
+  currency text not null default 'VND',
+  status text not null default 'pending' check (status in ('pending', 'paid', 'failed', 'expired', 'cancelled')),
+  payment_content text not null,
+  provider text not null default 'sepay',
+  provider_payment_id text,
+  bank_code text,
+  bank_account text,
+  bank_account_name text,
+  qr_code text,
+  checkout_url text,
+  qr_image_url text,
+  provider_transaction_id text,
+  reference_number text,
+  provider_raw jsonb,
+  paid_at timestamptz,
+  expires_at timestamptz not null default (now() + interval '30 minutes'),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.course_payments add column if not exists provider text not null default 'sepay';
+alter table public.course_payments add column if not exists provider_payment_id text;
+alter table public.course_payments add column if not exists checkout_url text;
+alter table public.course_payments add column if not exists provider_transaction_id text;
+alter table public.course_payments add column if not exists provider_raw jsonb;
 
 create table if not exists public.lesson_progress (
   id uuid primary key default gen_random_uuid(),
@@ -593,6 +630,7 @@ alter table public.course_assets enable row level security;
 alter table public.modules enable row level security;
 alter table public.lessons enable row level security;
 alter table public.enrollments enable row level security;
+alter table public.course_payments enable row level security;
 alter table public.lesson_progress enable row level security;
 alter table public.assessments enable row level security;
 alter table public.questions enable row level security;
@@ -611,6 +649,9 @@ create index if not exists idx_modules_course_id_position on public.modules(cour
 create index if not exists idx_lessons_module_id_position on public.lessons(module_id, position);
 create index if not exists idx_lessons_slug on public.lessons(slug);
 create index if not exists idx_enrollments_course_id on public.enrollments(course_id);
+create index if not exists idx_course_payments_user_created_at on public.course_payments(user_id, created_at desc);
+create index if not exists idx_course_payments_course_id on public.course_payments(course_id);
+create index if not exists idx_course_payments_status_expires_at on public.course_payments(status, expires_at);
 create index if not exists idx_lesson_progress_lesson_id on public.lesson_progress(lesson_id);
 create index if not exists idx_assessments_course_id_position on public.assessments(course_id, position);
 create index if not exists idx_assessments_lesson_id on public.assessments(lesson_id);
@@ -705,6 +746,13 @@ for insert with check (auth.uid() = user_id or public.is_admin());
 drop policy if exists "own enrollments update" on public.enrollments;
 create policy "own enrollments update" on public.enrollments
 for update using (auth.uid() = user_id or public.is_admin());
+
+drop policy if exists "own course payments read" on public.course_payments;
+create policy "own course payments read" on public.course_payments
+for select using (auth.uid() = user_id or public.is_admin());
+drop policy if exists "admin course payments mutate" on public.course_payments;
+create policy "admin course payments mutate" on public.course_payments
+for all using (public.is_admin()) with check (public.is_admin());
 
 drop policy if exists "own lesson progress" on public.lesson_progress;
 create policy "own lesson progress" on public.lesson_progress
@@ -881,6 +929,8 @@ insert into public.courses (
   category,
   level,
   duration_hours,
+  price_vnd,
+  currency,
   thumbnail_url,
   accent,
   outcomes,
@@ -896,6 +946,8 @@ values
     'Fullstack',
     'Trung cấp',
     18,
+    1490000,
+    'VND',
     'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=1400&q=85',
     '#e11d48',
     array[
@@ -915,6 +967,8 @@ values
     'AI',
     'Cơ bản',
     12,
+    990000,
+    'VND',
     'https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&w=1400&q=85',
     '#dc2626',
     array[
@@ -934,6 +988,8 @@ values
     'DevOps',
     'Cơ bản',
     10,
+    790000,
+    'VND',
     'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1400&q=85',
     '#b91c1c',
     array[
@@ -951,6 +1007,8 @@ on conflict (slug) do update set
   category = excluded.category,
   level = excluded.level,
   duration_hours = excluded.duration_hours,
+  price_vnd = excluded.price_vnd,
+  currency = excluded.currency,
   thumbnail_url = excluded.thumbnail_url,
   accent = excluded.accent,
   outcomes = excluded.outcomes,

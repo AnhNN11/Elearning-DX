@@ -8,10 +8,12 @@ import { MarkdownViewer } from "@/components/markdown-viewer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { enrollCourseAction } from "@/lib/actions";
-import { getCourse, getCourseLessonCount } from "@/lib/data";
+import { checkoutCourseAction, enrollCourseAction } from "@/lib/actions";
+import { getCurrentProfile } from "@/lib/auth";
+import { getCourse, getCourseLessonCount, getUserEnrollments } from "@/lib/data";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import { getLocale } from "@/lib/i18n/server";
+import { formatVnd } from "@/lib/money";
 
 export default async function CourseDetailPage({
   params,
@@ -29,6 +31,25 @@ export default async function CourseDetailPage({
   const resources = course.assets.filter((asset) => asset.kind !== "banner");
   const lessonCount = getCourseLessonCount(course);
   const isVietnamese = locale === "vi";
+  const isPaidCourse = course.priceVnd > 0;
+  const isFreeCourse = !isPaidCourse;
+  const profile = await getCurrentProfile();
+  const isEnrolled = profile
+    ? (await getUserEnrollments(profile.id)).some((enrollment) => enrollment.courseId === course.id)
+    : false;
+  const loginHref = `/login?next=${encodeURIComponent(`/courses/${course.slug}`)}`;
+  const loginButtonLabel = isPaidCourse
+    ? isVietnamese
+      ? "Đăng nhập để thanh toán"
+      : "Sign in to pay"
+    : isVietnamese
+      ? "Đăng nhập để đăng ký học"
+      : "Sign in to enroll";
+  const checkoutButtonLabel = isPaidCourse
+    ? isVietnamese
+      ? "Thanh toán SePay"
+      : "Pay with SePay"
+    : dict.courses.enroll;
 
   return (
     <main className="min-h-screen bg-background">
@@ -39,6 +60,8 @@ export default async function CourseDetailPage({
             <Pill>{course.category}</Pill>
             <Pill>{course.level}</Pill>
             <Pill>{course.durationHours} {dict.courses.hourUnit}</Pill>
+            <Pill>{formatVnd(course.priceVnd)}</Pill>
+            {isFreeCourse && <Badge>Free</Badge>}
           </div>
           <div className="max-w-2xl">
             <SectionHeader title={course.title} />
@@ -145,18 +168,48 @@ export default async function CourseDetailPage({
               <p className="text-muted-foreground text-xs font-bold">{dict.courses.certificateLabel}</p>
             </div>
           </div>
-          <form action={enrollCourseAction} className="mt-5">
-            <input name="courseId" type="hidden" value={course.id} />
-            <input name="courseSlug" type="hidden" value={course.slug} />
-            <Button className="w-full" size="lg" type="submit">
-              {dict.courses.enroll}
-            </Button>
-          </form>
-          <div className="mt-3">
-            <ButtonLink href={`/learn/${course.slug}`} variant="secondary">
-              {dict.courses.continueButton}
-            </ButtonLink>
+          <div className="mt-5 rounded-base border-2 border-border bg-secondary-background p-4">
+            <p className="text-xs font-heading uppercase text-muted-foreground">
+              {isVietnamese ? "Học phí" : "Tuition"}
+            </p>
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <p className="text-3xl font-heading text-primary">{formatVnd(course.priceVnd)}</p>
+              {isFreeCourse && <Badge>Free</Badge>}
+            </div>
+            {isPaidCourse && (
+              <p className="mt-2 text-sm font-bold leading-6 text-muted-foreground">
+                {isVietnamese
+                  ? "Thanh toán bằng SePay, hệ thống tự mở quyền học sau khi IPN xác nhận."
+                  : "Pay with SePay. Access is unlocked automatically after IPN confirmation."}
+              </p>
+            )}
           </div>
+          <div className="mt-5">
+            {isEnrolled ? (
+              <ButtonLink className="w-full" href={`/learn/${course.slug}`}>
+                {dict.courses.continueButton}
+              </ButtonLink>
+            ) : !profile ? (
+              <Button asChild className="w-full" size="lg">
+                <Link href={loginHref}>{loginButtonLabel}</Link>
+              </Button>
+            ) : (
+              <form action={isPaidCourse ? checkoutCourseAction : enrollCourseAction}>
+                <input name="courseId" type="hidden" value={course.id} />
+                <input name="courseSlug" type="hidden" value={course.slug} />
+                <Button className="w-full" size="lg" type="submit">
+                  {checkoutButtonLabel}
+                </Button>
+              </form>
+            )}
+          </div>
+          {!profile && (
+            <p className="mt-3 text-sm font-bold leading-6 text-muted-foreground">
+              {isVietnamese
+                ? "Bạn cần đăng nhập trước khi đăng ký học hoặc tạo đơn thanh toán."
+                : "Sign in before enrolling or creating a payment order."}
+            </p>
+          )}
           <div className="mt-6 rounded-base border-2 border-border bg-secondary-background p-4">
             <div className="flex items-start justify-between gap-4">
               <div>

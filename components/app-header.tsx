@@ -3,6 +3,7 @@ import { HeaderNav, type HeaderNavItem } from "@/components/header-nav";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { MobileHeaderMenu } from "@/components/mobile-header-menu";
 import { getBlogPosts, getInterviewQuestions } from "@/lib/content";
+import { getCurrentProfile } from "@/lib/auth";
 import { getCourses } from "@/lib/data";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import { getLocale } from "@/lib/i18n/server";
@@ -11,11 +12,14 @@ import { ButtonLink, Logo } from "./ui";
 export async function AppHeader() {
   const locale = await getLocale();
   const dict = getDictionary(locale);
-  const [courses, blogPosts, interviewQuestions] = await Promise.all([
+  const [courses, blogPosts, interviewQuestions, profile] = await Promise.all([
     getCourses(),
     getBlogPosts(locale),
     getInterviewQuestions(locale),
+    getCurrentProfile(),
   ]);
+  const startHref = profile ? "/profile" : "/login";
+  const startLabel = profile ? (locale === "vi" ? "Hồ sơ" : "Profile") : dict.nav.start;
   const nav: HeaderNavItem[] = [
     { href: "/courses", label: dict.nav.courses },
     { href: "/blog", label: dict.nav.blog },
@@ -51,8 +55,8 @@ export async function AppHeader() {
         <GlobalSearch className="hidden min-w-0 flex-1 lg:block xl:max-w-xl" copy={dict.search} items={searchItems} />
         <div className="ml-auto hidden shrink-0 items-center gap-2 sm:flex xl:gap-3">
           <LanguageSwitcher className="h-10 w-28 xl:h-12 xl:w-32" locale={locale} tone="light" />
-          <ButtonLink className="h-10 px-3 text-xs xl:h-12 xl:px-6 xl:text-sm" href="/login">
-            {dict.nav.start}
+          <ButtonLink className="h-10 px-3 text-xs xl:h-12 xl:px-6 xl:text-sm" href={startHref}>
+            {startLabel}
           </ButtonLink>
         </div>
         <MobileHeaderMenu
@@ -61,7 +65,8 @@ export async function AppHeader() {
           navItems={nav}
           searchCopy={dict.search}
           searchItems={searchItems}
-          startLabel={dict.nav.start}
+          startHref={startHref}
+          startLabel={startLabel}
         />
       </div>
     </header>

@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,15 +7,13 @@ import { cn } from "@/lib/utils";
 
 export function LogoMark({ className }: { className?: string }) {
   return (
-    <span className={cn("relative flex h-11 w-11 shrink-0 translate-y-0.5 items-center justify-center overflow-visible sm:h-12 sm:w-12", className)}>
-      <Image
-        alt=""
-        aria-hidden
-        className="h-full w-full object-contain"
-        height={746}
-        src="/brand/dolphinx-fish-mark.png"
-        width={649}
-      />
+    <span
+      className={cn(
+        "grid size-11 shrink-0 -rotate-2 place-items-center rounded-base border-2 border-border bg-main text-sm font-heading text-main-foreground shadow-shadow sm:size-12",
+        className,
+      )}
+    >
+      DX
     </span>
   );
 }
