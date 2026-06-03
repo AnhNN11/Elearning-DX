@@ -21,13 +21,25 @@ type SepayConfig = {
   webhookSecretKey: string;
 };
 
+const sepayBankCodeAliases: Record<string, string> = {
+  viettinbank: "vietinbank",
+  viettintbank: "vietinbank",
+};
+
+export function normalizeSepayBankCode(bankCode: string) {
+  const normalized = bankCode.trim();
+  const alias = sepayBankCodeAliases[normalized.toLowerCase()];
+
+  return alias ?? normalized;
+}
+
 function readSepayConfig(): SepayConfig {
   const env = process.env.SEPAY_ENV === "production" ? "production" : "sandbox";
 
   return {
     bankAccount: process.env.SEPAY_BANK_ACCOUNT ?? process.env.SEPAY_BANK_ACCOUNT_NUMBER ?? "",
     bankAccountName: process.env.SEPAY_BANK_ACCOUNT_NAME ?? "",
-    bankCode: process.env.SEPAY_BANK_CODE ?? process.env.SEPAY_BANK_SHORT_NAME ?? "",
+    bankCode: normalizeSepayBankCode(process.env.SEPAY_BANK_CODE ?? process.env.SEPAY_BANK_SHORT_NAME ?? ""),
     env,
     expiresMinutes: Number(process.env.SEPAY_PAYMENT_EXPIRES_MINUTES || 30),
     qrTemplate: process.env.SEPAY_QR_TEMPLATE || "compact",
@@ -86,11 +98,28 @@ function getRecord(value: unknown): Record<string, unknown> {
 
 function getString(record: Record<string, unknown>, key: string) {
   const value = record[key];
-  return typeof value === "string" ? value : undefined;
+  if (typeof value === "string") {
+    return value;
+  }
+
+  if (typeof value === "number") {
+    return String(value);
+  }
+
+  return undefined;
 }
 
 function getNumber(value: unknown) {
-  return typeof value === "number" ? value : Number(value ?? 0);
+  if (typeof value === "number") {
+    return value;
+  }
+
+  if (typeof value === "string") {
+    const normalized = value.replace(/[^\d.-]/g, "");
+    return Number(normalized || 0);
+  }
+
+  return Number(value ?? 0);
 }
 
 export function createSepayQrImageUrl(input: {
@@ -115,9 +144,10 @@ export function createSepayQrImageUrlForBank(input: {
   qrTemplate?: string;
 }) {
   const url = new URL("https://qr.sepay.vn/img");
+  const bankCode = normalizeSepayBankCode(input.bankCode);
 
   url.searchParams.set("acc", input.bankAccount);
-  url.searchParams.set("bank", input.bankCode);
+  url.searchParams.set("bank", bankCode);
   url.searchParams.set("amount", String(input.amountVnd));
   url.searchParams.set("des", input.paymentContent);
   url.searchParams.set("template", input.qrTemplate || "compact");
@@ -131,11 +161,8 @@ function findOrderIdInText(value: string | undefined) {
 
 export function verifySepayIpn(headers: Headers, body: unknown): SepayIpnPayload {
   const config = getSepayConfig();
-  const receivedSecret = headers.get("x-secret-key");
-
-  if (config.webhookSecretKey && receivedSecret && receivedSecret !== config.webhookSecretKey) {
-    throw new ApiError("IPN SePay không hợp lệ.", 401);
-  }
+  const authorization = headers.get("authorization") ?? "";
+  const receivedSecret = headers.get("x-secret-key") ?? authorization.replace(/^Apikey\s+/i, "");
 
   if (config.requireIpnSecret && (!config.webhookSecretKey || receivedSecret !== config.webhookSecretKey)) {
     throw new ApiError("IPN SePay không hợp lệ.", 401);
@@ -148,13 +175,13 @@ export function verifySepayIpn(headers: Headers, body: unknown): SepayIpnPayload
   const orderStatus = getString(order, "order_status");
   const transactionStatus = getString(transaction, "transaction_status");
   let orderId = getString(order, "order_invoice_number");
-  const transferAmount = getNumber(envelope.transferAmount);
-  const transferType = getString(envelope, "transferType");
-  const code = getString(envelope, "code");
+  const transferAmount = getNumber(envelope.transferAmount ?? envelope.amount);
+  const transferType = getString(envelope, "transferType") ?? getString(envelope, "transfer_type");
+  const code = getString(envelope, "code") ?? getString(envelope, "payment_code");
   const content = getString(envelope, "content") ?? getString(envelope, "description");
 
   if (!orderId) {
-    orderId = findOrderIdInText(code) ?? findOrderIdInText(content);
+    orderId = findOrderIdInText(code) ?? findOrderIdInText(content) ?? findOrderIdInText(getString(envelope, "description"));
   }
 
   if (!orderId) {
@@ -162,7 +189,7 @@ export function verifySepayIpn(headers: Headers, body: unknown): SepayIpnPayload
   }
 
   const isCheckoutPaid = notificationType === "ORDER_PAID" && orderStatus === "CAPTURED" && transactionStatus === "APPROVED";
-  const isBankTransferPaid = transferType === "in" && transferAmount > 0;
+  const isBankTransferPaid = (transferType === "in" || transferType === "credit") && transferAmount > 0;
   const isCancelled = notificationType === "TRANSACTION_VOID";
   const amount = getNumber(transaction.transaction_amount ?? order.order_amount) || transferAmount;
 
@@ -171,8 +198,13 @@ export function verifySepayIpn(headers: Headers, body: unknown): SepayIpnPayload
     currency: getString(transaction, "transaction_currency") ?? getString(order, "order_currency") ?? "VND",
     orderId,
     raw: body,
-    referenceNumber: getString(transaction, "id") ?? getString(envelope, "referenceCode"),
+    referenceNumber: getString(transaction, "id") ?? getString(envelope, "referenceCode") ?? getString(envelope, "reference_code"),
     status: isCheckoutPaid || isBankTransferPaid ? "paid" : isCancelled ? "cancelled" : "pending",
-    transactionId: getString(transaction, "transaction_id") ?? getString(transaction, "id") ?? String(envelope.id ?? ""),
+    transactionId:
+      getString(transaction, "transaction_id") ??
+      getString(transaction, "id") ??
+      getString(envelope, "transaction_id") ??
+      getString(envelope, "id") ??
+      "",
   };
 }

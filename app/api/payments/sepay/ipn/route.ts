@@ -28,6 +28,7 @@ export async function POST(request: Request) {
     }
 
     if (payment.status === "paid") {
+      await orm.learning.enroll(payment.userId, payment.courseId);
       return NextResponse.json({ success: true });
     }
 
@@ -40,7 +41,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true });
     }
 
-    if (payload.currency !== payment.currency || payload.amount !== payment.amountVnd) {
+    if (payload.currency !== payment.currency || payload.amount < payment.amountVnd) {
       throw new ApiError("Số tiền SePay không khớp đơn hàng.", 400);
     }
 

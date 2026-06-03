@@ -3,13 +3,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AlertTriangle, CheckCircle2, Clock3, ExternalLink, QrCode, RefreshCw } from "lucide-react";
 import { AppHeader } from "@/components/app-header";
+import { CheckoutStatusPoller } from "@/components/checkout-status-poller";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireUser } from "@/lib/auth";
 import { formatVnd } from "@/lib/money";
 import { createOrm } from "@/lib/orm";
-import { createSepayQrImageUrlForBank, getSepayConfig } from "@/lib/sepay";
+import { createSepayQrImageUrlForBank, getSepayConfig, normalizeSepayBankCode } from "@/lib/sepay";
 
 async function getServerNow() {
   return Date.now();
@@ -35,20 +36,29 @@ export default async function CheckoutPage({
   const isExpired = payment.status === "pending" && expiresAt.getTime() < now;
   const isPaid = payment.status === "paid";
   const sepayConfig = getSepayConfig();
-  const fallbackQrImageUrl =
-    !payment.qrImageUrl && sepayConfig.isConfigured
+  const rawBankCode = payment.bankCode ?? sepayConfig.bankCode;
+  const normalizedBankCode = rawBankCode ? normalizeSepayBankCode(rawBankCode) : "";
+  const qrBankAccount = payment.bankAccount ?? sepayConfig.bankAccount;
+  const qrBankAccountName = payment.bankAccountName ?? sepayConfig.bankAccountName;
+  const shouldRebuildQrImageUrl = Boolean(
+    normalizedBankCode &&
+      qrBankAccount &&
+      (!payment.qrImageUrl || (payment.bankCode && normalizedBankCode !== payment.bankCode)),
+  );
+  const rebuiltQrImageUrl =
+    shouldRebuildQrImageUrl
       ? createSepayQrImageUrlForBank({
           amountVnd: payment.amountVnd,
-          bankAccount: sepayConfig.bankAccount,
-          bankCode: sepayConfig.bankCode,
+          bankAccount: qrBankAccount,
+          bankCode: normalizedBankCode,
           paymentContent: payment.paymentContent,
           qrTemplate: sepayConfig.qrTemplate,
         })
       : undefined;
-  const qrImageUrl = payment.qrImageUrl ?? fallbackQrImageUrl;
-  const bankCode = payment.bankCode ?? (fallbackQrImageUrl ? sepayConfig.bankCode : undefined);
-  const bankAccount = payment.bankAccount ?? (fallbackQrImageUrl ? sepayConfig.bankAccount : undefined);
-  const bankAccountName = payment.bankAccountName ?? (fallbackQrImageUrl ? sepayConfig.bankAccountName : undefined);
+  const qrImageUrl = rebuiltQrImageUrl ?? payment.qrImageUrl;
+  const bankCode = normalizedBankCode || undefined;
+  const bankAccount = qrBankAccount || undefined;
+  const bankAccountName = qrBankAccountName || undefined;
   const hasQrImage = Boolean(qrImageUrl);
   const statusLabel = isPaid ? "Đã thanh toán" : isExpired ? "Hết hạn" : "Chờ chuyển khoản";
 
@@ -124,6 +134,7 @@ export default async function CheckoutPage({
                 </a>
               </Button>
             )}
+            {!isPaid && <CheckoutStatusPoller orderId={payment.orderId} />}
           </div>
 
           {!isPaid && !hasQrImage && (
@@ -180,6 +191,7 @@ export default async function CheckoutPage({
                       height={360}
                       priority
                       src={qrImageUrl}
+                      unoptimized
                       width={360}
                     />
                   </div>
