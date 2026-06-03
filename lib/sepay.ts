@@ -22,6 +22,7 @@ type SepayConfig = {
 };
 
 const sepayBankCodeAliases: Record<string, string> = {
+  icb: "vietinbank",
   viettinbank: "vietinbank",
   viettintbank: "vietinbank",
 };
@@ -81,11 +82,25 @@ export function createSepayOrderId() {
     .toUpperCase()
     .padStart(4, "0");
 
-  return `DXL-${time}-${random}`;
+  return `DXL${time}${random}`;
 }
 
-export function createSepayPaymentContent(orderId: string) {
-  return orderId.slice(0, 64);
+function getRequiredMemoPrefix(bankCode?: string) {
+  const normalizedBankCode = normalizeSepayBankCode(bankCode ?? "").toLowerCase();
+
+  if (normalizedBankCode === "vietinbank") {
+    return "SEVQR";
+  }
+
+  return "";
+}
+
+export function createSepayPaymentContent(orderId: string, bankCode?: string) {
+  const configuredPrefix = process.env.SEPAY_PAYMENT_CONTENT_PREFIX?.trim();
+  const prefix = configuredPrefix || getRequiredMemoPrefix(bankCode);
+  const content = [prefix, orderId].filter(Boolean).join(" ");
+
+  return content.slice(0, 64);
 }
 
 export function getSepayExpiresAt(minutes: number) {
@@ -156,7 +171,7 @@ export function createSepayQrImageUrlForBank(input: {
 }
 
 function findOrderIdInText(value: string | undefined) {
-  return value?.match(/\bDXL-[A-Z0-9]+-[A-Z0-9]+\b/i)?.[0]?.toUpperCase();
+  return value?.match(/\bDXL(?:-[A-Z0-9]+-[A-Z0-9]+|[A-Z0-9]{1,30})\b/i)?.[0]?.toUpperCase();
 }
 
 export function verifySepayIpn(headers: Headers, body: unknown): SepayIpnPayload {

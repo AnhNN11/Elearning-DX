@@ -10,7 +10,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireUser } from "@/lib/auth";
 import { formatVnd } from "@/lib/money";
 import { createOrm } from "@/lib/orm";
-import { createSepayQrImageUrlForBank, getSepayConfig, normalizeSepayBankCode } from "@/lib/sepay";
+import {
+  createSepayPaymentContent,
+  createSepayQrImageUrlForBank,
+  getSepayConfig,
+  normalizeSepayBankCode,
+} from "@/lib/sepay";
 
 async function getServerNow() {
   return Date.now();
@@ -38,12 +43,17 @@ export default async function CheckoutPage({
   const sepayConfig = getSepayConfig();
   const rawBankCode = payment.bankCode ?? sepayConfig.bankCode;
   const normalizedBankCode = rawBankCode ? normalizeSepayBankCode(rawBankCode) : "";
+  const displayPaymentContent = normalizedBankCode
+    ? createSepayPaymentContent(payment.orderId, normalizedBankCode)
+    : payment.paymentContent;
   const qrBankAccount = payment.bankAccount ?? sepayConfig.bankAccount;
   const qrBankAccountName = payment.bankAccountName ?? sepayConfig.bankAccountName;
   const shouldRebuildQrImageUrl = Boolean(
     normalizedBankCode &&
       qrBankAccount &&
-      (!payment.qrImageUrl || (payment.bankCode && normalizedBankCode !== payment.bankCode)),
+      (!payment.qrImageUrl ||
+        displayPaymentContent !== payment.paymentContent ||
+        (payment.bankCode && normalizedBankCode !== payment.bankCode)),
   );
   const rebuiltQrImageUrl =
     shouldRebuildQrImageUrl
@@ -51,7 +61,7 @@ export default async function CheckoutPage({
           amountVnd: payment.amountVnd,
           bankAccount: qrBankAccount,
           bankCode: normalizedBankCode,
-          paymentContent: payment.paymentContent,
+          paymentContent: displayPaymentContent,
           qrTemplate: sepayConfig.qrTemplate,
         })
       : undefined;
@@ -98,7 +108,7 @@ export default async function CheckoutPage({
               </div>
               <div className="rounded-base border-2 border-border bg-secondary-background p-4">
                 <p className="text-xs font-heading uppercase text-muted-foreground">Nội dung chuyển khoản</p>
-                <p className="mt-2 font-mono text-2xl font-black text-foreground">{payment.paymentContent}</p>
+                <p className="mt-2 font-mono text-2xl font-black text-foreground">{displayPaymentContent}</p>
               </div>
               <div className="rounded-base border-2 border-border bg-secondary-background p-4">
                 <p className="text-xs font-heading uppercase text-muted-foreground">Hạn thanh toán</p>

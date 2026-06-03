@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { confirmCoursePaymentAction } from "@/lib/actions";
 import { requireAdmin } from "@/lib/auth";
 import { getAdminCoursePayments } from "@/lib/data";
 import { formatVnd } from "@/lib/money";
@@ -266,17 +267,28 @@ export default async function AdminPaymentsPage({
                       <p className="mt-1 break-all text-xs font-bold text-muted-foreground">
                         {payment.providerTransactionId ?? payment.referenceNumber ?? "Chưa có mã giao dịch"}
                       </p>
-                      {payment.qrImageUrl && payment.status === "pending" && (
-                        <a
-                          className="mt-2 inline-flex items-center gap-1 text-xs font-heading text-primary hover:underline"
-                          href={payment.qrImageUrl}
-                          rel="noreferrer"
-                          target="_blank"
-                        >
-                          Mở QR
-                          <ExternalLink className="size-3" />
-                        </a>
-                      )}
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        {payment.qrImageUrl && payment.status === "pending" && (
+                          <a
+                            className="inline-flex items-center gap-1 text-xs font-heading text-primary hover:underline"
+                            href={payment.qrImageUrl}
+                            rel="noreferrer"
+                            target="_blank"
+                          >
+                            Mở QR
+                            <ExternalLink className="size-3" />
+                          </a>
+                        )}
+                        {payment.status !== "paid" && (
+                          <form action={confirmCoursePaymentAction}>
+                            <input name="orderId" type="hidden" value={payment.orderId} />
+                            <input name="returnTo" type="hidden" value={`/admin/payments?status=${status}&q=${encodeURIComponent(q)}`} />
+                            <Button className="h-8 px-2 text-xs" type="submit" variant="outline">
+                              Xác nhận đã nhận tiền
+                            </Button>
+                          </form>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="min-w-48 whitespace-normal text-xs font-bold text-muted-foreground">
                       <p>Tạo: {formatDate(payment.createdAt)}</p>

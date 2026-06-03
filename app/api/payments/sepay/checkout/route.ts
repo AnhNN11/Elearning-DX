@@ -61,7 +61,7 @@ export async function POST(request: Request) {
     }
 
     const orderId = createSepayOrderId();
-    const paymentContent = createSepayPaymentContent(orderId);
+    const paymentContent = createSepayPaymentContent(orderId, config.bankCode);
     const qrImageUrl = createSepayQrImageUrl({
       amountVnd: course.priceVnd,
       paymentContent,

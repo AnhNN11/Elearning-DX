@@ -211,6 +211,29 @@ export async function updateCoursePublishAction(formData: FormData) {
   redirectWithToast(returnTo, "course-published");
 }
 
+export async function confirmCoursePaymentAction(formData: FormData) {
+  const orderId = formValue(formData, "orderId");
+  const returnTo = formValue(formData, "returnTo") || "/admin/payments";
+
+  if (!orderId) {
+    redirectWithToast(returnTo, "admin-error", {
+      message: "Thiếu mã đơn thanh toán.",
+      type: "error",
+    });
+  }
+
+  await callAdminApiOrToast(`/api/admin/payments/${orderId}/mark-paid`, undefined, returnTo, {
+    method: "PATCH",
+  });
+
+  revalidatePath("/admin/payments");
+  revalidatePath("/profile");
+  revalidatePath("/learn");
+  redirectWithToast(returnTo, "payment-confirmed", {
+    message: `Đã xác nhận thanh toán ${orderId}.`,
+  });
+}
+
 export async function uploadCourseBannerAction(formData: FormData) {
   const courseId = formValue(formData, "courseId");
   const courseSlug = formValue(formData, "courseSlug");

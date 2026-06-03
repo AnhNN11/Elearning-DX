@@ -38,6 +38,7 @@ Route Handlers, and a Supabase ORM/repository layer.
    SEPAY_BANK_ACCOUNT=
    SEPAY_BANK_ACCOUNT_NAME=
    SEPAY_QR_TEMPLATE=compact
+   SEPAY_PAYMENT_CONTENT_PREFIX=
    SEPAY_PAYMENT_EXPIRES_MINUTES=30
    SEPAY_IPN_REQUIRE_SECRET=false
    ```
@@ -49,8 +50,25 @@ Route Handlers, and a Supabase ORM/repository layer.
    `DIRECT_URL` for migrations/session-mode access.
 
    SePay QR checkout renders the bank-transfer QR directly on
-   `/checkout/[orderId]` using `SEPAY_BANK_CODE` and `SEPAY_BANK_ACCOUNT`. In the
-   SePay dashboard, set IPN URL to:
+   `/checkout/[orderId]` using `SEPAY_BANK_CODE` and `SEPAY_BANK_ACCOUNT`. New
+   SePay order IDs are alphanumeric and start with `DXL`, so SePay can extract a
+   payment code from the bank transfer memo. If you use VietinBank, keep
+   `SEPAY_PAYMENT_CONTENT_PREFIX` empty unless SePay support tells you otherwise;
+   the app will prepend `SEVQR` automatically and the QR memo becomes
+   `SEVQR DXL...`.
+
+   In the SePay dashboard, enable Payment code recognition and add a payment code
+   structure matching this app:
+
+   ```txt
+   Prefix: DXL
+   Min suffix length: 6
+   Max suffix length: 30
+   Character type: Numbers and letters
+   Status: Active
+   ```
+
+   Then set IPN URL to:
 
    ```txt
    https://your-domain.com/api/payments/sepay/ipn
