@@ -17,10 +17,21 @@ export function CheckoutStatusPoller({ orderId }: { orderId: string }) {
   useEffect(() => {
     let cancelled = false;
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    let attempt = 0;
 
     async function poll() {
       try {
-        const response = await fetch(`/api/payments/status?orderId=${encodeURIComponent(orderId)}`, {
+        attempt += 1;
+        const shouldCheckSepay = attempt === 1 || attempt % 3 === 0;
+        const params = new URLSearchParams({
+          orderId,
+        });
+
+        if (shouldCheckSepay) {
+          params.set("checkSepay", "1");
+        }
+
+        const response = await fetch(`/api/payments/status?${params.toString()}`, {
           cache: "no-store",
         });
         const payload = (await response.json().catch(() => ({}))) as PaymentStatusPayload;
@@ -44,7 +55,7 @@ export function CheckoutStatusPoller({ orderId }: { orderId: string }) {
         }
       }
 
-      timeoutId = setTimeout(poll, 4000);
+      timeoutId = setTimeout(poll, 5000);
     }
 
     timeoutId = setTimeout(poll, 1500);

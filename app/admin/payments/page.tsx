@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AlertTriangle, CheckCircle2, Clock3, CreditCard, ExternalLink, ReceiptText, Search } from "lucide-react";
+import { AdminPaymentsReconciler } from "@/components/admin-payments-reconciler";
 import { AdminShell } from "@/components/admin-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -112,6 +113,7 @@ export default async function AdminPaymentsPage({
 
   return (
     <AdminShell>
+      <AdminPaymentsReconciler />
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <p className="text-sm font-heading uppercase text-primary">Payment operations</p>
@@ -218,21 +220,22 @@ export default async function AdminPaymentsPage({
         </CardHeader>
         <CardContent>
           {filteredPayments.length ? (
-            <Table>
+            <Table className="min-w-[1320px] table-fixed">
               <TableHeader>
                 <TableRow>
-                  <TableHead>Đơn hàng</TableHead>
-                  <TableHead>Khách hàng</TableHead>
-                  <TableHead>Khóa học</TableHead>
-                  <TableHead>Số tiền</TableHead>
-                  <TableHead>SePay</TableHead>
-                  <TableHead>Thời gian</TableHead>
+                  <TableHead className="w-[250px]">Đơn hàng</TableHead>
+                  <TableHead className="w-[220px]">Khách hàng</TableHead>
+                  <TableHead className="w-[260px]">Khóa học</TableHead>
+                  <TableHead className="w-[150px]">Số tiền</TableHead>
+                  <TableHead className="w-[220px]">SePay</TableHead>
+                  <TableHead className="w-[210px]">Thời gian</TableHead>
+                  <TableHead className="w-[190px] text-right">Hành động</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredPayments.map((payment) => (
                   <TableRow key={payment.id}>
-                    <TableCell className="min-w-52 whitespace-normal">
+                    <TableCell className="whitespace-normal align-top">
                       <div className="flex items-start gap-2">
                         {payment.status === "paid" ? (
                           <CheckCircle2 className="mt-0.5 size-4 text-primary" />
@@ -243,57 +246,58 @@ export default async function AdminPaymentsPage({
                         )}
                         <div className="min-w-0">
                           <p className="break-all font-mono text-sm font-black text-foreground">{payment.orderId}</p>
-                          <p className="mt-1 break-all text-xs font-bold text-muted-foreground">{payment.paymentContent}</p>
+                          <p className="mt-1 break-words text-xs font-bold leading-5 text-muted-foreground">
+                            {payment.paymentContent}
+                          </p>
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="min-w-56 whitespace-normal">
+                    <TableCell className="whitespace-normal align-top">
                       <p className="font-black text-foreground">{payment.userFullName ?? "Chưa có tên"}</p>
-                      <p className="mt-1 break-all text-xs font-bold text-muted-foreground">{payment.userEmail ?? payment.userId}</p>
+                      <p className="mt-1 break-all text-xs font-bold leading-5 text-muted-foreground">{payment.userEmail ?? payment.userId}</p>
                     </TableCell>
-                    <TableCell className="min-w-64 whitespace-normal">
-                      <Link className="font-black text-foreground hover:text-primary" href={`/admin/courses/${payment.courseId}`}>
+                    <TableCell className="whitespace-normal align-top">
+                      <Link className="font-black leading-6 text-foreground hover:text-primary" href={`/admin/courses/${payment.courseId}`}>
                         {payment.courseTitle ?? payment.courseId}
                       </Link>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="whitespace-normal align-top">
                       <div className="grid gap-2">
                         <p className="font-heading text-primary">{formatVnd(payment.amountVnd)}</p>
                         <Badge variant={statusVariant(payment.status)}>{statusCopy[payment.status]}</Badge>
                       </div>
                     </TableCell>
-                    <TableCell className="min-w-56 whitespace-normal">
+                    <TableCell className="whitespace-normal align-top">
                       <p className="text-sm font-black text-foreground">{payment.provider.toUpperCase()}</p>
-                      <p className="mt-1 break-all text-xs font-bold text-muted-foreground">
+                      <p className="mt-1 break-all text-xs font-bold leading-5 text-muted-foreground">
                         {payment.providerTransactionId ?? payment.referenceNumber ?? "Chưa có mã giao dịch"}
                       </p>
-                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                    </TableCell>
+                    <TableCell className="whitespace-normal align-top text-xs font-bold leading-5 text-muted-foreground">
+                      <p>Tạo: {formatDate(payment.createdAt)}</p>
+                      <p className="mt-1">Hạn: {formatDate(payment.expiresAt)}</p>
+                      {payment.paidAt && <p className="mt-1 text-primary">Paid: {formatDate(payment.paidAt)}</p>}
+                    </TableCell>
+                    <TableCell className="whitespace-normal align-top">
+                      <div className="flex flex-col items-stretch gap-2">
                         {payment.qrImageUrl && payment.status === "pending" && (
-                          <a
-                            className="inline-flex items-center gap-1 text-xs font-heading text-primary hover:underline"
-                            href={payment.qrImageUrl}
-                            rel="noreferrer"
-                            target="_blank"
-                          >
-                            Mở QR
-                            <ExternalLink className="size-3" />
-                          </a>
+                          <Button asChild className="h-8 justify-center px-2 text-xs" variant="outline">
+                            <a href={payment.qrImageUrl} rel="noreferrer" target="_blank">
+                              Mở QR
+                              <ExternalLink className="size-3" />
+                            </a>
+                          </Button>
                         )}
                         {payment.status !== "paid" && (
                           <form action={confirmCoursePaymentAction}>
                             <input name="orderId" type="hidden" value={payment.orderId} />
                             <input name="returnTo" type="hidden" value={`/admin/payments?status=${status}&q=${encodeURIComponent(q)}`} />
-                            <Button className="h-8 px-2 text-xs" type="submit" variant="outline">
-                              Xác nhận đã nhận tiền
+                            <Button className="h-8 w-full px-2 text-xs" type="submit" variant="outline">
+                              Xác nhận thủ công
                             </Button>
                           </form>
                         )}
                       </div>
-                    </TableCell>
-                    <TableCell className="min-w-48 whitespace-normal text-xs font-bold text-muted-foreground">
-                      <p>Tạo: {formatDate(payment.createdAt)}</p>
-                      <p className="mt-1">Hạn: {formatDate(payment.expiresAt)}</p>
-                      {payment.paidAt && <p className="mt-1 text-primary">Paid: {formatDate(payment.paidAt)}</p>}
                     </TableCell>
                   </TableRow>
                 ))}

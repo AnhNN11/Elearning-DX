@@ -10,6 +10,27 @@ export type SepayIpnPayload = {
   transactionId?: string;
 };
 
+export type SepayTransaction = {
+  accountNumber?: string;
+  amountIn: number;
+  amountOut: number;
+  bankBrandName?: string;
+  code?: string;
+  id: string;
+  raw: Record<string, unknown>;
+  referenceNumber?: string;
+  transactionContent?: string;
+  transactionDate?: string;
+  transferType?: string;
+  webhookSuccess?: number | null;
+};
+
+export type SepayTransactionListResult = {
+  error?: string;
+  ok: boolean;
+  transactions: SepayTransaction[];
+};
+
 type SepayConfig = {
   bankAccount: string;
   bankAccountName: string;
@@ -137,6 +158,125 @@ function getNumber(value: unknown) {
   return Number(value ?? 0);
 }
 
+function getSepayApiToken() {
+  return (
+    process.env.SEPAY_API_TOKEN ??
+    process.env.SEPAY_USER_API_TOKEN ??
+    process.env.SEPAY_SECRET_KEY ??
+    ""
+  ).trim();
+}
+
+function getNullableNumber(record: Record<string, unknown>, key: string) {
+  const value = record[key];
+
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  return getNumber(value);
+}
+
+function mapSepayTransaction(value: unknown): SepayTransaction | null {
+  const record = getRecord(value);
+  const id = getString(record, "id") ?? getString(record, "transaction_id");
+
+  if (!id) {
+    return null;
+  }
+
+  return {
+    accountNumber: getString(record, "account_number"),
+    amountIn: getNumber(record.amount_in ?? (getString(record, "transfer_type") === "in" ? record.amount : 0)),
+    amountOut: getNumber(record.amount_out ?? (getString(record, "transfer_type") === "out" ? record.amount : 0)),
+    bankBrandName: getString(record, "bank_brand_name") ?? getString(record, "gateway"),
+    code: getString(record, "code"),
+    id,
+    raw: record,
+    referenceNumber: getString(record, "reference_number"),
+    transactionContent: getString(record, "transaction_content") ?? getString(record, "content"),
+    transactionDate: getString(record, "transaction_date"),
+    transferType: getString(record, "transfer_type"),
+    webhookSuccess: getNullableNumber(record, "webhook_success"),
+  };
+}
+
+export async function listSepayTransactions(input: {
+  amountInMin?: number;
+  page?: number;
+  perPage?: number;
+  q?: string;
+  timeoutMs?: number;
+  transactionDateFrom?: string;
+  transactionDateTo?: string;
+  transferType?: "in" | "out";
+} = {}): Promise<SepayTransactionListResult> {
+  const token = getSepayApiToken();
+
+  if (!token) {
+    return {
+      error: "Thiếu SEPAY_API_TOKEN để tự đối soát giao dịch.",
+      ok: false,
+      transactions: [],
+    };
+  }
+
+  const url = new URL("https://userapi.sepay.vn/v2/transactions");
+
+  if (input.q) {
+    url.searchParams.set("q", input.q);
+  }
+  if (input.transferType) {
+    url.searchParams.set("transfer_type", input.transferType);
+  }
+  if (input.amountInMin !== undefined) {
+    url.searchParams.set("amount_in_min", String(input.amountInMin));
+  }
+  if (input.transactionDateFrom) {
+    url.searchParams.set("transaction_date_from", input.transactionDateFrom);
+  }
+  if (input.transactionDateTo) {
+    url.searchParams.set("transaction_date_to", input.transactionDateTo);
+  }
+
+  url.searchParams.set("page", String(input.page ?? 1));
+  url.searchParams.set("per_page", String(input.perPage ?? 20));
+  url.searchParams.set("timestamp_format", "iso8601");
+
+  try {
+    const response = await fetch(url, {
+      cache: "no-store",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      signal: AbortSignal.timeout(input.timeoutMs ?? 5000),
+    });
+    const payload = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+
+    if (!response.ok) {
+      return {
+        error: getString(payload, "message") ?? getString(payload, "error") ?? `SePay API lỗi ${response.status}.`,
+        ok: false,
+        transactions: [],
+      };
+    }
+
+    const data = Array.isArray(payload.data) ? payload.data : [];
+
+    return {
+      ok: true,
+      transactions: data.map(mapSepayTransaction).filter((item): item is SepayTransaction => Boolean(item)),
+    };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Không gọi được SePay API.",
+      ok: false,
+      transactions: [],
+    };
+  }
+}
+
 export function createSepayQrImageUrl(input: {
   amountVnd: number;
   paymentContent: string;
@@ -170,7 +310,7 @@ export function createSepayQrImageUrlForBank(input: {
   return url.toString();
 }
 
-function findOrderIdInText(value: string | undefined) {
+export function findSepayOrderIdInText(value: string | undefined) {
   return value?.match(/\bDXL(?:-[A-Z0-9]+-[A-Z0-9]+|[A-Z0-9]{1,30})\b/i)?.[0]?.toUpperCase();
 }
 
@@ -196,7 +336,10 @@ export function verifySepayIpn(headers: Headers, body: unknown): SepayIpnPayload
   const content = getString(envelope, "content") ?? getString(envelope, "description");
 
   if (!orderId) {
-    orderId = findOrderIdInText(code) ?? findOrderIdInText(content) ?? findOrderIdInText(getString(envelope, "description"));
+    orderId =
+      findSepayOrderIdInText(code) ??
+      findSepayOrderIdInText(content) ??
+      findSepayOrderIdInText(getString(envelope, "description"));
   }
 
   if (!orderId) {

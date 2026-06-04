@@ -40,6 +40,7 @@ Route Handlers, and a Supabase ORM/repository layer.
    SEPAY_QR_TEMPLATE=compact
    SEPAY_PAYMENT_CONTENT_PREFIX=
    SEPAY_PAYMENT_EXPIRES_MINUTES=30
+   SEPAY_API_TOKEN=
    SEPAY_IPN_REQUIRE_SECRET=false
    ```
 
@@ -77,6 +78,11 @@ Route Handlers, and a Supabase ORM/repository layer.
    If IPN Auth Type is `Không có`, leave `SEPAY_IPN_REQUIRE_SECRET=false`. To
    require a header secret, set `SEPAY_IPN_REQUIRE_SECRET=true` and
    `SEPAY_IPN_SECRET_KEY=`.
+
+   `SEPAY_API_TOKEN` is used for automatic reconciliation through SePay API v2.
+   The checkout status endpoint and admin payments page will query recent SePay
+   transactions and mark matching pending orders as paid even if an IPN delivery
+   was missed.
 
 3. Start the app:
 
