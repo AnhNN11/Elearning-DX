@@ -9,21 +9,21 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-main [color:var(--main-foreground)] shadow-shadow hover:translate-x-boxShadowX hover:translate-y-boxShadowY hover:shadow-none",
+          "bg-main text-main-foreground shadow-shadow hover:translate-x-boxShadowX hover:translate-y-boxShadowY hover:shadow-none",
         destructive:
-          "bg-destructive [color:white] shadow-shadow hover:translate-x-boxShadowX hover:translate-y-boxShadowY hover:shadow-none",
+          "bg-destructive text-white shadow-shadow hover:translate-x-boxShadowX hover:translate-y-boxShadowY hover:shadow-none",
         outline:
-          "bg-secondary-background [color:var(--foreground)] shadow-shadow hover:translate-x-boxShadowX hover:translate-y-boxShadowY hover:shadow-none",
+          "bg-secondary-background text-foreground shadow-shadow hover:translate-x-boxShadowX hover:translate-y-boxShadowY hover:shadow-none",
         secondary:
-          "bg-secondary [color:var(--secondary-foreground)] shadow-shadow hover:translate-x-boxShadowX hover:translate-y-boxShadowY hover:shadow-none",
+          "bg-secondary text-secondary-foreground shadow-shadow hover:translate-x-boxShadowX hover:translate-y-boxShadowY hover:shadow-none",
         ghost:
-          "border-transparent bg-transparent [color:var(--foreground)] shadow-none hover:border-border hover:bg-secondary-background",
-        link: "border-transparent bg-transparent p-0 [color:var(--primary)] shadow-none underline-offset-4 hover:underline",
+          "border-transparent bg-transparent text-foreground shadow-none hover:border-border hover:bg-secondary-background",
+        link: "border-transparent bg-transparent p-0 text-primary shadow-none underline-offset-4 hover:underline",
         neutral:
-          "bg-secondary-background [color:var(--foreground)] shadow-shadow hover:translate-x-boxShadowX hover:translate-y-boxShadowY hover:shadow-none",
-        noShadow: "bg-main [color:var(--main-foreground)] shadow-none",
+          "bg-secondary-background text-foreground shadow-shadow hover:translate-x-boxShadowX hover:translate-y-boxShadowY hover:shadow-none",
+        noShadow: "bg-main text-main-foreground shadow-none",
         reverse:
-          "bg-main [color:var(--main-foreground)] shadow-none hover:translate-x-reverseBoxShadowX hover:translate-y-reverseBoxShadowY hover:shadow-shadow",
+          "bg-main text-main-foreground shadow-none hover:translate-x-reverseBoxShadowX hover:translate-y-reverseBoxShadowY hover:shadow-shadow",
       },
       size: {
         default: "h-10 px-4 py-2",

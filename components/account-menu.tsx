@@ -133,7 +133,7 @@ export function AccountMenu({
             <MenuLink href="/profile" icon={<UserRound className="size-4" />} onClick={() => setOpen(false)}>
               {isVietnamese ? "Xem hồ sơ" : "View profile"}
             </MenuLink>
-            <MenuLink href="/profile#settings" icon={<Settings className="size-4" />} onClick={() => setOpen(false)}>
+            <MenuLink href="/settings" icon={<Settings className="size-4" />} onClick={() => setOpen(false)}>
               {isVietnamese ? "Cài đặt" : "Settings"}
             </MenuLink>
           </div>

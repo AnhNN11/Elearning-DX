@@ -25,6 +25,19 @@ function formValue(formData: FormData, key: string) {
   return typeof value === "string" ? value : "";
 }
 
+function safeReturnPath(value: string, fallback = "/profile") {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) {
+    return fallback;
+  }
+
+  return value;
+}
+
+function withQueryParam(path: string, key: string, value: string) {
+  const separator = path.includes("?") ? "&" : "?";
+  return `${path}${separator}${encodeURIComponent(key)}=${encodeURIComponent(value)}`;
+}
+
 async function getInternalOrigin() {
   const headerStore = await headers();
   const requestOrigin = headerStore.get("origin");
@@ -408,18 +421,21 @@ export async function submitCodeAction(formData: FormData) {
 }
 
 export async function updateProfileAction(formData: FormData) {
+  const returnTo = safeReturnPath(formValue(formData, "returnTo"));
   await callApi("/api/profile", formData, { method: "PATCH" });
 
   revalidatePath("/profile");
+  revalidatePath("/settings");
   revalidatePath("/login");
-  redirect("/profile?saved=1");
+  redirect(withQueryParam(returnTo, "saved", "1"));
 }
 
-export async function linkGoogleAccountAction() {
-  const payload = await callApi("/api/account/link-google", undefined, { method: "POST" });
+export async function linkGoogleAccountAction(formData: FormData) {
+  const returnTo = safeReturnPath(formValue(formData, "returnTo"));
+  const payload = await callApi(`/api/account/link-google?next=${encodeURIComponent(returnTo)}`, undefined, { method: "POST" });
 
   if (!payload.url) {
-    redirect("/profile?account=error");
+    redirect(withQueryParam(returnTo, "account", "error"));
   }
 
   redirect(payload.url);
