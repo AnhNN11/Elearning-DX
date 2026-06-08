@@ -271,10 +271,11 @@ export function AdminCourseComposer({ action }: { action: CourseAction }) {
                 name="priceVnd"
                 onChange={(event) => setPriceVnd(event.target.value)}
                 required
-                step="10000"
+                step="1"
                 type="number"
                 value={priceVnd}
               />
+              <p className="text-xs font-bold text-muted-foreground">0 là miễn phí, khóa trả phí từ 1.000đ trở lên.</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="course-accent">Accent</Label>

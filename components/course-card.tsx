@@ -39,11 +39,9 @@ export function CourseCard({
           </div>
         )}
         <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-foreground/55 to-transparent" />
-        {isFree && (
-          <Badge className="absolute left-3 top-3 border-background bg-main text-main-foreground shadow-shadow">
-            Free
-          </Badge>
-        )}
+        <Badge className="absolute left-4 top-4 z-10 border-background bg-main px-4 py-1.5 text-sm font-heading text-main-foreground shadow-shadow sm:text-base">
+          {isFree ? "Free" : formatVnd(course.priceVnd)}
+        </Badge>
       </div>
       <CardHeader className="pt-5">
         <div className="flex flex-wrap gap-2">

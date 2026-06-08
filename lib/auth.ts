@@ -1,12 +1,19 @@
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { cache } from "react";
 import { createOrm } from "./orm";
 import { createClient } from "./supabase/server";
+import { hasSupabaseAuthCookie } from "./supabase/auth-cookies";
 import { hasSupabaseEnv } from "./supabase/config";
 import type { AccountIdentity, Profile } from "./types";
 
 async function loadCurrentProfile(): Promise<Profile | null> {
   if (!hasSupabaseEnv) {
+    return null;
+  }
+
+  const cookieStore = await cookies();
+  if (!hasSupabaseAuthCookie(cookieStore.getAll())) {
     return null;
   }
 
@@ -27,11 +34,11 @@ async function loadCurrentProfile(): Promise<Profile | null> {
   return orm ? orm.users.profileForAuthUser(user) : null;
 }
 
-export async function getCurrentProfile(): Promise<Profile | null> {
-  return loadCurrentProfile();
-}
-
 export const getCurrentProfileForRequest = cache(loadCurrentProfile);
+
+export async function getCurrentProfile(): Promise<Profile | null> {
+  return getCurrentProfileForRequest();
+}
 
 export async function requireUser() {
   const profile = await getCurrentProfileForRequest();

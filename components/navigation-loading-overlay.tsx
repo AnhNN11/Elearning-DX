@@ -1,12 +1,11 @@
 "use client";
 
-import Image from "next/image";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 const NAVIGATION_LOADING_EVENT = "dx:navigation-loading";
-const NAVIGATION_LOADING_DELAY_MS = 550;
-const NAVIGATION_LOADING_TIMEOUT_MS = 12000;
+const NAVIGATION_LOADING_DELAY_MS = 400;
+const NAVIGATION_LOADING_TIMEOUT_MS = 5000;
 
 function isPlainLeftClick(event: MouseEvent) {
   return event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey;
@@ -127,19 +126,12 @@ export function NavigationLoadingOverlay() {
 
   return (
     <div
-      aria-label="Loading DolphinX Learn"
+      aria-label="Đang tải trang"
       aria-live="polite"
-      className="fixed inset-0 z-[9998] grid place-items-center bg-background/25 px-4 text-foreground backdrop-blur-[2px]"
+      className="pointer-events-none fixed inset-x-0 top-0 z-[9998] h-1.5 overflow-hidden bg-main/20"
       role="status"
     >
-      <Image
-        alt="DolphinX Learn logo"
-        className="loading-logo-spin h-16 w-16 object-contain drop-shadow-sm sm:h-20 sm:w-20"
-        height={746}
-        priority
-        src="/brand/dolphinx-fish-mark.png"
-        width={649}
-      />
+      <span className="navigation-loading-bar block h-full w-1/2 bg-main shadow-shadow" />
     </div>
   );
 }

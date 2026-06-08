@@ -3,9 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
+    "dev": "MallocNanoZone=0 next dev --webpack",
+    "dev:turbopack": "MallocNanoZone=0 next dev --turbopack",
+    "build": "MallocNanoZone=0 next build",
+    "start": "MallocNanoZone=0 next start",
     "lint": "eslint",
     "prisma:generate": "prisma generate",
     "prisma:pull": "prisma db pull",

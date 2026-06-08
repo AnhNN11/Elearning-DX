@@ -31,7 +31,14 @@ export const courseSchema = z.object({
       message: "Link ảnh không hợp lệ",
     }),
   durationHours: z.coerce.number().min(0.5).max(500),
-  priceVnd: z.coerce.number().int().min(0).max(999_999_999),
+  priceVnd: z.coerce
+    .number()
+    .int()
+    .min(0)
+    .max(999_999_999)
+    .refine((value) => value === 0 || value >= 1000, {
+      message: "nhập 0 để miễn phí hoặc từ 1.000đ trở lên",
+    }),
   outcomes: z.string().transform((value) =>
     value
       .split(/\r?\n|,/)

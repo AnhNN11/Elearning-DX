@@ -388,10 +388,12 @@ export default async function AdminCourseDetailPage({
                     name="priceVnd"
                     placeholder="VD: 990000"
                     required
-                    step="10000"
+                    step="1"
                     type="number"
                   />
-                  <p className="text-xs font-bold text-muted-foreground">Nhập 0 để hiển thị badge Free ở màn user.</p>
+                  <p className="text-xs font-bold text-muted-foreground">
+                    Nhập 0 để hiển thị Free, khóa trả phí từ 1.000đ trở lên.
+                  </p>
                 </div>
               </div>
               <div className="space-y-2">

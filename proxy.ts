@@ -5,9 +5,10 @@ import {
   supabasePublishableKey,
   supabaseUrl,
 } from "./lib/supabase/config";
+import { hasSupabaseAuthCookie } from "./lib/supabase/auth-cookies";
 
 export async function proxy(request: NextRequest) {
-  if (!hasSupabaseEnv) {
+  if (!hasSupabaseEnv || !hasSupabaseAuthCookie(request.cookies.getAll())) {
     return NextResponse.next();
   }
 
