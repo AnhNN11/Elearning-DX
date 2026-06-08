@@ -4,12 +4,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
+import { AccountMenu } from "@/components/account-menu";
 import { GlobalSearch, type GlobalSearchItem } from "@/components/global-search";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { Button } from "@/components/ui/button";
 import type { HeaderNavItem } from "@/components/header-nav";
 import type { Dictionary } from "@/lib/i18n/dictionaries";
 import type { Locale } from "@/lib/i18n/config";
+import type { Profile } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 function isActivePath(pathname: string, href: string) {
@@ -20,6 +22,7 @@ export function MobileHeaderMenu({
   className,
   locale,
   navItems,
+  profile,
   searchCopy,
   searchEndpoint,
   searchItems,
@@ -29,6 +32,7 @@ export function MobileHeaderMenu({
   className?: string;
   locale: Locale;
   navItems: HeaderNavItem[];
+  profile?: Pick<Profile, "avatarUrl" | "email" | "fullName"> | null;
   searchCopy: Dictionary["search"];
   searchEndpoint?: string;
   searchItems?: GlobalSearchItem[];
@@ -77,12 +81,18 @@ export function MobileHeaderMenu({
           </nav>
 
           <div className="mt-3 grid gap-3 sm:hidden">
-            <LanguageSwitcher className="h-10 w-full" locale={locale} tone="light" />
-            <Button asChild className="h-10 w-full text-sm">
-              <Link href={startHref} onClick={() => setOpen(false)}>
-                {startLabel}
-              </Link>
-            </Button>
+            {profile ? (
+              <AccountMenu className="[&>button]:w-full [&>button]:max-w-none [&>button]:justify-between" locale={locale} profile={profile} />
+            ) : (
+              <>
+                <LanguageSwitcher className="h-10 w-full" locale={locale} tone="light" />
+                <Button asChild className="h-10 w-full text-sm">
+                  <Link href={startHref} onClick={() => setOpen(false)}>
+                    {startLabel}
+                  </Link>
+                </Button>
+              </>
+            )}
           </div>
         </div>
       )}

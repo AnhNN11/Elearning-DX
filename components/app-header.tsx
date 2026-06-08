@@ -1,3 +1,4 @@
+import { AccountMenu } from "@/components/account-menu";
 import { GlobalSearch } from "@/components/global-search";
 import { HeaderNav, type HeaderNavItem } from "@/components/header-nav";
 import { LanguageSwitcher } from "@/components/language-switcher";
@@ -27,15 +28,22 @@ export async function AppHeader() {
         <HeaderNav items={nav} />
         <GlobalSearch className="hidden min-w-0 flex-1 lg:block xl:max-w-xl" copy={dict.search} endpoint="/api/search-index" />
         <div className="ml-auto hidden shrink-0 items-center gap-2 sm:flex xl:gap-3">
-          <LanguageSwitcher className="h-10 w-28 xl:h-12 xl:w-32" locale={locale} tone="light" />
-          <ButtonLink className="h-10 px-3 text-xs xl:h-12 xl:px-6 xl:text-sm" href={startHref}>
-            {startLabel}
-          </ButtonLink>
+          {profile ? (
+            <AccountMenu locale={locale} profile={profile} />
+          ) : (
+            <>
+              <LanguageSwitcher className="h-10 w-28 xl:h-12 xl:w-32" locale={locale} tone="light" />
+              <ButtonLink className="h-10 px-3 text-xs xl:h-12 xl:px-6 xl:text-sm" href={startHref}>
+                {startLabel}
+              </ButtonLink>
+            </>
+          )}
         </div>
         <MobileHeaderMenu
           className="ml-auto sm:ml-0"
           locale={locale}
           navItems={nav}
+          profile={profile}
           searchCopy={dict.search}
           searchEndpoint="/api/search-index"
           startHref={startHref}

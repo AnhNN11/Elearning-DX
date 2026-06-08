@@ -346,7 +346,7 @@ export default async function ProfilePage({
           </aside>
         </div>
 
-        <section className="mt-10">
+        <section className="mt-10 scroll-mt-28" id="settings">
           <div className="mb-4">
             <p className="text-sm font-heading uppercase text-primary">{copy.settings}</p>
             <h2 className="mt-2 text-2xl font-heading text-foreground">{dict.profile.editTitle}</h2>
