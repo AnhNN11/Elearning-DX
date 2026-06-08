@@ -1,10 +1,11 @@
 import { redirect } from "next/navigation";
+import { cache } from "react";
 import { createOrm } from "./orm";
 import { createClient } from "./supabase/server";
 import { hasSupabaseEnv } from "./supabase/config";
 import type { AccountIdentity, Profile } from "./types";
 
-export async function getCurrentProfile(): Promise<Profile | null> {
+async function loadCurrentProfile(): Promise<Profile | null> {
   if (!hasSupabaseEnv) {
     return null;
   }
@@ -26,8 +27,14 @@ export async function getCurrentProfile(): Promise<Profile | null> {
   return orm ? orm.users.profileForAuthUser(user) : null;
 }
 
+export async function getCurrentProfile(): Promise<Profile | null> {
+  return loadCurrentProfile();
+}
+
+export const getCurrentProfileForRequest = cache(loadCurrentProfile);
+
 export async function requireUser() {
-  const profile = await getCurrentProfile();
+  const profile = await getCurrentProfileForRequest();
 
   if (!profile) {
     redirect("/login");
@@ -37,7 +44,7 @@ export async function requireUser() {
 }
 
 export async function requireAdmin() {
-  const profile = await getCurrentProfile();
+  const profile = await getCurrentProfileForRequest();
 
   if (!profile) {
     redirect("/admin/login");

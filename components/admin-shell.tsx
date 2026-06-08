@@ -19,8 +19,6 @@ import { AdminDrawerShell } from "@/components/admin-drawer-shell";
 import { AdminToast } from "@/components/admin-toast";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { requireAdmin } from "@/lib/auth";
-import { getBlogPosts, getInterviewQuestions } from "@/lib/content";
-import { getCourses } from "@/lib/data";
 import { getDictionary } from "@/lib/i18n/dictionaries";
 import { getLocale } from "@/lib/i18n/server";
 import { Button } from "./ui/button";
@@ -28,12 +26,7 @@ import { Button } from "./ui/button";
 export async function AdminShell({ children }: { children: ReactNode }) {
   const locale = await getLocale();
   const dict = getDictionary(locale);
-  const [profile, courses, blogPosts, interviewQuestions] = await Promise.all([
-    requireAdmin(),
-    getCourses(true),
-    getBlogPosts(locale, true),
-    getInterviewQuestions(locale, true),
-  ]);
+  const profile = await requireAdmin();
   const adminNav = [
     { href: "/admin", label: dict.admin.nav.overview, icon: LayoutDashboard, iconKey: "overview" as const },
     { href: "/admin/landing", label: locale === "vi" ? "Trang chủ" : "Landing", icon: Home, iconKey: "home" as const },
@@ -67,14 +60,14 @@ export async function AdminShell({ children }: { children: ReactNode }) {
       keywords: "create course upload banner crud",
     },
     {
-      href: courses[0] ? `/admin/courses/${courses[0].id}` : "/admin/courses",
+      href: "/admin/courses",
       label: "Upload tài liệu khóa học",
       description: "PDF, slide, source code, resource",
       group: "Thao tác",
       keywords: "upload document pdf slide source resource",
     },
     {
-      href: courses[0] ? `/admin/courses/${courses[0].id}` : "/admin/courses",
+      href: "/admin/courses",
       label: "Cấu hình video lesson",
       description: "Kiểm tra link YouTube public/unlisted trước khi publish",
       group: "Thao tác",
@@ -87,45 +80,7 @@ export async function AdminShell({ children }: { children: ReactNode }) {
       group: "Thao tác",
       keywords: "markdown blog content upload",
     },
-    ...courses.map((course) => ({
-      href: `/admin/courses/${course.id}`,
-      label: course.title,
-      description: `${course.category} - ${course.published ? "Published" : "Draft"}`,
-      group: "Khóa học" as const,
-      keywords: `${course.slug} ${course.description} ${course.category} ${course.level}`,
-    })),
-    ...courses.flatMap((course) =>
-      course.modules.flatMap((module) =>
-        module.lessons.map((lesson) => ({
-          href: `/admin/courses/${course.id}`,
-          label: lesson.title,
-          description: `${course.title} - ${module.title}`,
-          group: "Lesson" as const,
-          keywords: `${lesson.slug} ${lesson.content.slice(0, 280)} ${lesson.videoUrl ?? ""}`,
-        })),
-      ),
-    ),
-    ...blogPosts.map((post) => ({
-      href: "/admin/blog",
-      label: post.title,
-      description: `${post.category} - ${post.readTime}`,
-      group: "Nội dung" as const,
-      keywords: `${post.slug} ${post.excerpt} ${post.tags.join(" ")} ${post.content.slice(0, 2).join(" ")}`,
-    })),
-    ...interviewQuestions.slice(0, 20).map((question) => ({
-      href: "/admin/interviews",
-      label: question.question,
-      description: `${question.category} - ${question.level}`,
-      group: "Nội dung" as const,
-      keywords: `${question.prompt.slice(0, 180)} ${question.answer.slice(0, 180)} ${question.checklist.join(" ")}`,
-    })),
   ];
-  const lessonCount = courses.reduce((total, course) => total + course.modules.reduce((sum, module) => sum + module.lessons.length, 0), 0);
-  const draftCount = courses.filter((course) => !course.published).length;
-  const queueCount = courses.reduce(
-    (total, course) => total + course.modules.flatMap((module) => module.lessons).filter((lesson) => !lesson.videoUrl).length,
-    0,
-  );
 
   return (
     <>
@@ -133,7 +88,7 @@ export async function AdminShell({ children }: { children: ReactNode }) {
       <AdminDrawerShell
         desktopToolbar={
           <>
-            <AdminCommandSearch className="hidden w-full max-w-2xl lg:block" items={searchItems} />
+            <AdminCommandSearch className="hidden w-full max-w-2xl lg:block" endpoint="/api/admin/search-index" items={searchItems} />
             <div className="ml-auto flex items-center gap-2 sm:gap-3">
               <Button asChild className="hidden h-11 px-3 text-xs xl:inline-flex" variant="outline">
                 <Link href="/admin/courses">
@@ -142,7 +97,7 @@ export async function AdminShell({ children }: { children: ReactNode }) {
                 </Link>
               </Button>
               <Button asChild className="hidden h-11 px-3 text-xs xl:inline-flex" variant="secondary">
-                <Link href={courses[0] ? `/admin/courses/${courses[0].id}` : "/admin/courses"}>
+                <Link href="/admin/courses">
                   <UploadCloud className="size-4" />
                   Upload
                 </Link>
@@ -155,12 +110,8 @@ export async function AdminShell({ children }: { children: ReactNode }) {
             </div>
           </>
         }
-        draftCount={draftCount}
         items={mobileNavItems}
-        lessonCount={lessonCount}
-        mobileSearch={<AdminCommandSearch items={searchItems} />}
-        queueCount={queueCount}
-        totalCourses={courses.length}
+        mobileSearch={<AdminCommandSearch endpoint="/api/admin/search-index" items={searchItems} />}
       >
         {children}
       </AdminDrawerShell>

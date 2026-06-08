@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { BookOpen, FileText, FolderOpen, LayoutDashboard, Search, Sparkles, UploadCloud, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -28,21 +28,72 @@ const groupOrder: AdminSearchItem["group"][] = ["Thao tác", "Khóa học", "Les
 
 export function AdminCommandSearch({
   className,
+  endpoint,
   items,
 }: {
   className?: string;
+  endpoint?: string;
   items: AdminSearchItem[];
 }) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
+  const [remoteItems, setRemoteItems] = useState<AdminSearchItem[] | null>(null);
+  const [loadingItems, setLoadingItems] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const loadingRef = useRef(false);
   const normalizedQuery = query.trim().toLowerCase();
+  const allItems = useMemo(() => {
+    const merged = new Map<string, AdminSearchItem>();
+
+    for (const item of items) {
+      merged.set(`${item.group}:${item.href}:${item.label}`, item);
+    }
+
+    for (const item of remoteItems ?? []) {
+      merged.set(`${item.group}:${item.href}:${item.label}`, item);
+    }
+
+    return Array.from(merged.values());
+  }, [items, remoteItems]);
+
+  const loadItems = useCallback(async () => {
+    if (!endpoint || remoteItems || loadingRef.current) {
+      return;
+    }
+
+    loadingRef.current = true;
+    setLoadingItems(true);
+    setLoadError(null);
+
+    try {
+      const response = await fetch(endpoint, { cache: "no-store" });
+      const payload = (await response.json().catch(() => null)) as {
+        ok?: boolean;
+        items?: AdminSearchItem[];
+        error?: string;
+      } | null;
+
+      if (!response.ok || payload?.ok === false || !Array.isArray(payload?.items)) {
+        throw new Error(payload?.error ?? "Không tải được dữ liệu admin.");
+      }
+
+      setRemoteItems(payload.items);
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : "Không tải được dữ liệu admin.");
+      setRemoteItems([]);
+    } finally {
+      loadingRef.current = false;
+      setLoadingItems(false);
+    }
+  }, [endpoint, remoteItems]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
         setOpen(true);
+        void loadItems();
         inputRef.current?.focus();
       }
 
@@ -54,15 +105,15 @@ export function AdminCommandSearch({
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  }, [loadItems]);
 
   const results = useMemo(() => {
     const filtered = normalizedQuery
-      ? items.filter((item) => `${item.label} ${item.description ?? ""} ${item.keywords}`.toLowerCase().includes(normalizedQuery))
-      : items;
+      ? allItems.filter((item) => `${item.label} ${item.description ?? ""} ${item.keywords}`.toLowerCase().includes(normalizedQuery))
+      : allItems;
 
     return filtered.slice(0, 14);
-  }, [items, normalizedQuery]);
+  }, [allItems, normalizedQuery]);
 
   const groupedResults = groupOrder
     .map((group) => ({
@@ -82,8 +133,12 @@ export function AdminCommandSearch({
           onChange={(event) => {
             setQuery(event.target.value);
             setOpen(true);
+            void loadItems();
           }}
-          onFocus={() => setOpen(true)}
+          onFocus={() => {
+            setOpen(true);
+            void loadItems();
+          }}
           placeholder="Search admin, courses, lessons..."
           ref={inputRef}
           value={query}
@@ -112,7 +167,9 @@ export function AdminCommandSearch({
             )}
           </div>
           <div className="max-h-[min(28rem,calc(100vh-7rem))] overflow-y-auto p-2">
-            {groupedResults.length ? (
+            {loadingItems && allItems.length === 0 ? (
+              <div className="p-5 text-sm font-heading text-muted-foreground">Đang tải dữ liệu admin...</div>
+            ) : groupedResults.length ? (
               groupedResults.map(({ group, items: groupItems }) => {
                 const Icon = groupIcons[group];
 
@@ -147,6 +204,8 @@ export function AdminCommandSearch({
                   </div>
                 );
               })
+            ) : loadError ? (
+              <div className="p-5 text-sm font-heading text-muted-foreground">{loadError}</div>
             ) : (
               <div className="p-5 text-sm font-heading text-muted-foreground">
                 Không tìm thấy kết quả. Thử tên khóa học, lesson, blog hoặc thao tác upload.

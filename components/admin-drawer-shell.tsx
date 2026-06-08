@@ -34,12 +34,12 @@ type AdminDrawerItem = {
 type AdminDrawerShellProps = {
   children: ReactNode;
   desktopToolbar: ReactNode;
-  draftCount: number;
+  draftCount?: number;
   items: AdminDrawerItem[];
-  lessonCount: number;
+  lessonCount?: number;
   mobileSearch: ReactNode;
-  queueCount: number;
-  totalCourses: number;
+  queueCount?: number;
+  totalCourses?: number;
 };
 
 const icons = {
@@ -70,6 +70,11 @@ export function AdminDrawerShell({
   const pathname = usePathname();
   const [desktopOpen, setDesktopOpen] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const hasHealthMetrics =
+    typeof totalCourses === "number" &&
+    typeof lessonCount === "number" &&
+    typeof queueCount === "number" &&
+    typeof draftCount === "number";
 
   useEffect(() => {
     const saved = window.localStorage.getItem(storageKey);
@@ -155,7 +160,7 @@ export function AdminDrawerShell({
         {desktopOpen && <p className="mt-3 text-xs font-heading uppercase text-muted-foreground">Admin workspace</p>}
         <Separator className="my-5" />
         {nav}
-        {desktopOpen ? (
+        {desktopOpen && hasHealthMetrics ? (
           <div className="mt-6 rounded-base border-2 border-border bg-secondary p-4">
             <p className="text-xs font-heading uppercase text-muted-foreground">Content health</p>
             <div className="mt-3 grid grid-cols-3 gap-2 text-center">
@@ -167,12 +172,12 @@ export function AdminDrawerShell({
               {draftCount} draft courses. Kiểm tra video, banner và tài liệu trước khi publish.
             </p>
           </div>
-        ) : (
+        ) : !desktopOpen && hasHealthMetrics ? (
           <div className="mt-5 grid gap-2 text-center">
             <CompactHealthMetric danger={queueCount > 0} label="Missing" value={queueCount} />
             <CompactHealthMetric label="Courses" value={totalCourses} />
           </div>
-        )}
+        ) : null}
       </aside>
 
       {mobileOpen && (

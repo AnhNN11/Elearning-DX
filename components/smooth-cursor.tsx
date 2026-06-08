@@ -25,6 +25,22 @@ export function SmoothCursor() {
       ringRef.current?.classList.add("is-visible");
     };
 
+    const animate = () => {
+      ringX += (targetX - ringX) * 0.18;
+      ringY += (targetY - ringY) * 0.18;
+      if (ringRef.current) {
+        ringRef.current.style.transform = `translate3d(${ringX}px, ${ringY}px, 0) translate(-50%, -50%)`;
+      }
+
+      if (Math.abs(targetX - ringX) > 0.2 || Math.abs(targetY - ringY) > 0.2) {
+        animationFrame = window.requestAnimationFrame(animate);
+      } else {
+        ringX = targetX;
+        ringY = targetY;
+        animationFrame = 0;
+      }
+    };
+
     const handlePointerMove = (event: PointerEvent) => {
       targetX = event.clientX;
       targetY = event.clientY;
@@ -32,30 +48,25 @@ export function SmoothCursor() {
       if (dotRef.current) {
         dotRef.current.style.transform = `translate3d(${targetX}px, ${targetY}px, 0) translate(-50%, -50%)`;
       }
+      if (!animationFrame) {
+        animationFrame = window.requestAnimationFrame(animate);
+      }
     };
 
     const handlePointerDown = () => ringRef.current?.classList.add("is-pressed");
     const handlePointerUp = () => ringRef.current?.classList.remove("is-pressed");
 
-    const animate = () => {
-      ringX += (targetX - ringX) * 0.18;
-      ringY += (targetY - ringY) * 0.18;
-      if (ringRef.current) {
-        ringRef.current.style.transform = `translate3d(${ringX}px, ${ringY}px, 0) translate(-50%, -50%)`;
-      }
-      animationFrame = window.requestAnimationFrame(animate);
-    };
-
     window.addEventListener("pointermove", handlePointerMove);
     window.addEventListener("pointerdown", handlePointerDown);
     window.addEventListener("pointerup", handlePointerUp);
-    animationFrame = window.requestAnimationFrame(animate);
 
     return () => {
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("pointerdown", handlePointerDown);
       window.removeEventListener("pointerup", handlePointerUp);
-      window.cancelAnimationFrame(animationFrame);
+      if (animationFrame) {
+        window.cancelAnimationFrame(animationFrame);
+      }
     };
   }, []);
 

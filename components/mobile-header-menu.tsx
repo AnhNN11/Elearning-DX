@@ -21,6 +21,7 @@ export function MobileHeaderMenu({
   locale,
   navItems,
   searchCopy,
+  searchEndpoint,
   searchItems,
   startHref,
   startLabel,
@@ -29,7 +30,8 @@ export function MobileHeaderMenu({
   locale: Locale;
   navItems: HeaderNavItem[];
   searchCopy: Dictionary["search"];
-  searchItems: GlobalSearchItem[];
+  searchEndpoint?: string;
+  searchItems?: GlobalSearchItem[];
   startHref: string;
   startLabel: string;
 }) {
@@ -51,7 +53,7 @@ export function MobileHeaderMenu({
 
       {open && (
         <div className="absolute right-0 top-12 z-50 w-[min(calc(100vw-1rem),24rem)] rounded-base border-2 border-border bg-background p-3 shadow-shadow">
-          <GlobalSearch copy={searchCopy} items={searchItems} />
+          <GlobalSearch copy={searchCopy} endpoint={searchEndpoint} items={searchItems} />
 
           <nav className="mt-3 grid gap-1 border-y-2 border-border py-3 text-sm font-heading uppercase">
             {navItems.map((item) => {

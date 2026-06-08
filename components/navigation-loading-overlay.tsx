@@ -5,7 +5,8 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 const NAVIGATION_LOADING_EVENT = "dx:navigation-loading";
-const NAVIGATION_LOADING_TIMEOUT_MS = 45000;
+const NAVIGATION_LOADING_DELAY_MS = 550;
+const NAVIGATION_LOADING_TIMEOUT_MS = 12000;
 
 function isPlainLeftClick(event: MouseEvent) {
   return event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey;
@@ -39,21 +40,40 @@ export function NavigationLoadingOverlay() {
   const searchParams = useSearchParams();
   const routeKey = useMemo(() => `${pathname}?${searchParams.toString()}`, [pathname, searchParams]);
   const [startedRouteKey, setStartedRouteKey] = useState<string | null>(null);
+  const [visible, setVisible] = useState(false);
+  const showTimerRef = useRef<number | null>(null);
   const timeoutRef = useRef<number | null>(null);
   const pending = startedRouteKey === routeKey;
 
   useEffect(() => {
     if (!pending) {
+      if (showTimerRef.current) {
+        window.clearTimeout(showTimerRef.current);
+        showTimerRef.current = null;
+      }
       return;
     }
+
+    if (showTimerRef.current) {
+      window.clearTimeout(showTimerRef.current);
+    }
+
+    showTimerRef.current = window.setTimeout(() => setVisible(true), NAVIGATION_LOADING_DELAY_MS);
 
     if (timeoutRef.current) {
       window.clearTimeout(timeoutRef.current);
     }
 
-    timeoutRef.current = window.setTimeout(() => setStartedRouteKey(null), NAVIGATION_LOADING_TIMEOUT_MS);
+    timeoutRef.current = window.setTimeout(() => {
+      setStartedRouteKey(null);
+      setVisible(false);
+    }, NAVIGATION_LOADING_TIMEOUT_MS);
 
     return () => {
+      if (showTimerRef.current) {
+        window.clearTimeout(showTimerRef.current);
+        showTimerRef.current = null;
+      }
       if (timeoutRef.current) {
         window.clearTimeout(timeoutRef.current);
         timeoutRef.current = null;
@@ -63,6 +83,7 @@ export function NavigationLoadingOverlay() {
 
   useEffect(() => {
     function start() {
+      setVisible(false);
       setStartedRouteKey(routeKey);
     }
 
@@ -100,7 +121,7 @@ export function NavigationLoadingOverlay() {
     };
   }, [routeKey]);
 
-  if (!pending) {
+  if (!pending || !visible) {
     return null;
   }
 
@@ -108,7 +129,7 @@ export function NavigationLoadingOverlay() {
     <div
       aria-label="Loading DolphinX Learn"
       aria-live="polite"
-      className="fixed inset-0 z-[9998] grid place-items-center bg-background/30 px-4 text-foreground backdrop-blur-[3px]"
+      className="fixed inset-0 z-[9998] grid place-items-center bg-background/25 px-4 text-foreground backdrop-blur-[2px]"
       role="status"
     >
       <Image

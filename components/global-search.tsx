@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Search, Sparkles, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,21 +19,60 @@ export type GlobalSearchItem = {
 export function GlobalSearch({
   className,
   copy,
+  endpoint,
   items,
 }: {
   className?: string;
   copy: Dictionary["search"];
-  items: GlobalSearchItem[];
+  endpoint?: string;
+  items?: GlobalSearchItem[];
 }) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
+  const [remoteItems, setRemoteItems] = useState<GlobalSearchItem[] | null>(null);
+  const [loadingItems, setLoadingItems] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const loadingRef = useRef(false);
+  const activeItems = useMemo(() => remoteItems ?? items ?? [], [items, remoteItems]);
+
+  const loadItems = useCallback(async () => {
+    if (!endpoint || remoteItems || loadingRef.current) {
+      return;
+    }
+
+    loadingRef.current = true;
+    setLoadingItems(true);
+    setLoadError(null);
+
+    try {
+      const response = await fetch(endpoint, { cache: "no-store" });
+      const payload = (await response.json().catch(() => null)) as {
+        ok?: boolean;
+        items?: GlobalSearchItem[];
+        error?: string;
+      } | null;
+
+      if (!response.ok || payload?.ok === false || !Array.isArray(payload?.items)) {
+        throw new Error(payload?.error ?? "Không tải được dữ liệu tìm kiếm.");
+      }
+
+      setRemoteItems(payload.items);
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : "Không tải được dữ liệu tìm kiếm.");
+      setRemoteItems([]);
+    } finally {
+      loadingRef.current = false;
+      setLoadingItems(false);
+    }
+  }, [endpoint, remoteItems]);
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
         event.preventDefault();
         setOpen(true);
+        void loadItems();
         inputRef.current?.focus();
       }
 
@@ -45,18 +84,18 @@ export function GlobalSearch({
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, []);
+  }, [loadItems]);
 
   const results = useMemo(() => {
     const normalized = query.trim().toLowerCase();
     if (!normalized) {
-      return items.slice(0, 6);
+      return activeItems.slice(0, 6);
     }
 
-    return items
+    return activeItems
       .filter((item) => item.text.toLowerCase().includes(normalized))
       .slice(0, 8);
-  }, [items, query]);
+  }, [activeItems, query]);
 
   return (
     <div className={cn("relative", className)}>
@@ -69,8 +108,12 @@ export function GlobalSearch({
           onChange={(event) => {
             setQuery(event.target.value);
             setOpen(true);
+            void loadItems();
           }}
-          onFocus={() => setOpen(true)}
+          onFocus={() => {
+            setOpen(true);
+            void loadItems();
+          }}
           placeholder={copy.globalPlaceholder}
           ref={inputRef}
           value={query}
@@ -99,7 +142,9 @@ export function GlobalSearch({
             )}
           </div>
           <div className="max-h-[min(28rem,calc(100vh-7rem))] overflow-y-auto p-2">
-            {results.length ? (
+            {loadingItems && activeItems.length === 0 ? (
+              <p className="p-3 text-sm font-heading text-muted-foreground">Đang tải dữ liệu tìm kiếm...</p>
+            ) : results.length ? (
               <div className="space-y-1">
                 {results.map((item, index) => (
                   <Link
@@ -115,6 +160,8 @@ export function GlobalSearch({
                   </Link>
                 ))}
               </div>
+            ) : loadError ? (
+              <p className="p-3 text-sm font-heading text-muted-foreground">{loadError}</p>
             ) : (
               <p className="p-3 text-sm font-heading text-muted-foreground">{copy.noResults}</p>
             )}
