@@ -8,8 +8,16 @@ export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json().catch(() => ({}));
-    const payload = verifySepayIpn(request.headers, body);
+    const rawBody = await request.text();
+    let body: unknown = {};
+
+    try {
+      body = rawBody ? JSON.parse(rawBody) : {};
+    } catch {
+      throw new ApiError("IPN SePay JSON không hợp lệ.", 400);
+    }
+
+    const payload = verifySepayIpn(request.headers, body, rawBody);
 
     const adminClient = createAdminClient();
     if (!adminClient) {

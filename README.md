@@ -79,9 +79,11 @@ Route Handlers, and a Supabase ORM/repository layer.
    require a header secret, set `SEPAY_IPN_REQUIRE_SECRET=true` and
    `SEPAY_IPN_SECRET_KEY=`.
 
-   `SEPAY_API_TOKEN` is used for automatic reconciliation through SePay API v2.
-   The checkout status endpoint and admin payments page will query recent SePay
-   transactions and mark matching pending orders as paid even if an IPN delivery
+   `SEPAY_API_TOKEN` is the Bearer token created in SePay Dashboard -> Company
+   Settings -> API Access. It is not the IPN secret key or payment gateway
+   secret key. It is used for automatic reconciliation through SePay API v2.
+   Checkout and admin payments query recent SePay transactions in the
+   background and mark matching pending orders as paid even if an IPN delivery
    was missed.
 
 3. Start the app:

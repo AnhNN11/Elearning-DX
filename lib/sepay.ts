@@ -1,3 +1,4 @@
+import { createHmac, timingSafeEqual } from "crypto";
 import { ApiError } from "@/lib/api/auth";
 
 export type SepayIpnPayload = {
@@ -159,12 +160,46 @@ function getNumber(value: unknown) {
 }
 
 function getSepayApiToken() {
-  return (
-    process.env.SEPAY_API_TOKEN ??
-    process.env.SEPAY_USER_API_TOKEN ??
-    process.env.SEPAY_SECRET_KEY ??
-    ""
-  ).trim();
+  return (process.env.SEPAY_API_TOKEN ?? process.env.SEPAY_USER_API_TOKEN ?? "").trim();
+}
+
+function getSepayUserApiBaseUrl() {
+  return getSepayConfig().env === "production" ? "https://userapi.sepay.vn/v2" : "https://userapi-sandbox.sepay.vn/v2";
+}
+
+function safeEqual(left: string, right: string) {
+  const leftBuffer = Buffer.from(left);
+  const rightBuffer = Buffer.from(right);
+
+  return leftBuffer.length === rightBuffer.length && timingSafeEqual(leftBuffer, rightBuffer);
+}
+
+function verifySepayHmacSignature(headers: Headers, rawBody: string | undefined, secret: string) {
+  const signature = headers.get("x-sepay-signature") ?? "";
+  const timestamp = headers.get("x-sepay-timestamp") ?? "";
+
+  if (!signature && !timestamp) {
+    return false;
+  }
+
+  if (!rawBody || !secret || !signature || !timestamp) {
+    throw new ApiError("Chữ ký IPN SePay không hợp lệ.", 401);
+  }
+
+  const timestampSeconds = Number(timestamp);
+  const nowSeconds = Math.floor(Date.now() / 1000);
+
+  if (!Number.isFinite(timestampSeconds) || Math.abs(nowSeconds - timestampSeconds) > 300) {
+    throw new ApiError("IPN SePay đã hết hạn.", 401);
+  }
+
+  const expectedSignature = `sha256=${createHmac("sha256", secret).update(`${timestamp}.${rawBody}`).digest("hex")}`;
+
+  if (!safeEqual(expectedSignature, signature)) {
+    throw new ApiError("Chữ ký IPN SePay không khớp.", 401);
+  }
+
+  return true;
 }
 
 function getNullableNumber(record: Record<string, unknown>, key: string) {
@@ -221,7 +256,7 @@ export async function listSepayTransactions(input: {
     };
   }
 
-  const url = new URL("https://userapi.sepay.vn/v2/transactions");
+  const url = new URL(`${getSepayUserApiBaseUrl()}/transactions`);
 
   if (input.q) {
     url.searchParams.set("q", input.q);
@@ -314,13 +349,17 @@ export function findSepayOrderIdInText(value: string | undefined) {
   return value?.match(/\bDXL(?:-[A-Z0-9]+-[A-Z0-9]+|[A-Z0-9]{1,30})\b/i)?.[0]?.toUpperCase();
 }
 
-export function verifySepayIpn(headers: Headers, body: unknown): SepayIpnPayload {
+export function verifySepayIpn(headers: Headers, body: unknown, rawBody?: string): SepayIpnPayload {
   const config = getSepayConfig();
   const authorization = headers.get("authorization") ?? "";
   const receivedSecret = headers.get("x-secret-key") ?? authorization.replace(/^Apikey\s+/i, "");
 
-  if (config.requireIpnSecret && (!config.webhookSecretKey || receivedSecret !== config.webhookSecretKey)) {
-    throw new ApiError("IPN SePay không hợp lệ.", 401);
+  if (config.requireIpnSecret) {
+    const hmacVerified = verifySepayHmacSignature(headers, rawBody, config.webhookSecretKey);
+
+    if (!hmacVerified && (!config.webhookSecretKey || receivedSecret !== config.webhookSecretKey)) {
+      throw new ApiError("IPN SePay không hợp lệ.", 401);
+    }
   }
 
   const envelope = getRecord(body);

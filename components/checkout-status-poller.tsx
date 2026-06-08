@@ -6,33 +6,71 @@ import { CheckCircle2, Loader2 } from "lucide-react";
 
 type PaymentStatusPayload = {
   courseSlug?: string;
+  matched?: boolean;
   paid?: boolean;
   status?: string;
 };
 
+type PollPhase = "checking" | "paid" | "reconciling" | "waiting";
+
 export function CheckoutStatusPoller({ orderId }: { orderId: string }) {
   const router = useRouter();
   const [status, setStatus] = useState("pending");
+  const [phase, setPhase] = useState<PollPhase>("checking");
 
   useEffect(() => {
     let cancelled = false;
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
-    let attempt = 0;
+    let reconcileTimeoutId: ReturnType<typeof setTimeout> | undefined;
+    let hasRefreshed = false;
+    const controllers = new Set<AbortController>();
 
-    async function poll() {
+    function createController() {
+      const controller = new AbortController();
+      controllers.add(controller);
+
+      return controller;
+    }
+
+    function markPaid() {
+      if (cancelled) {
+        return;
+      }
+
+      setStatus("paid");
+      setPhase("paid");
+
+      if (!hasRefreshed) {
+        hasRefreshed = true;
+        router.refresh();
+      }
+    }
+
+    function scheduleStatusPoll(delay = 3000) {
+      if (!cancelled && !hasRefreshed) {
+        timeoutId = setTimeout(pollStatus, delay);
+      }
+    }
+
+    function scheduleReconcile(delay = 10000) {
+      if (!cancelled && !hasRefreshed) {
+        reconcileTimeoutId = setTimeout(reconcilePayment, delay);
+      }
+    }
+
+    async function pollStatus() {
+      const controller = createController();
+
       try {
-        attempt += 1;
-        const shouldCheckSepay = attempt === 1 || attempt % 3 === 0;
         const params = new URLSearchParams({
           orderId,
         });
 
-        if (shouldCheckSepay) {
-          params.set("checkSepay", "1");
-        }
+        setPhase((current) => (current === "paid" || current === "reconciling" ? current : "checking"));
 
         const response = await fetch(`/api/payments/status?${params.toString()}`, {
           cache: "no-store",
+          signal: controller.signal,
         });
         const payload = (await response.json().catch(() => ({}))) as PaymentStatusPayload;
 
@@ -45,30 +83,90 @@ export function CheckoutStatusPoller({ orderId }: { orderId: string }) {
         }
 
         if (response.ok && payload.paid) {
-          setStatus("paid");
-          router.refresh();
+          markPaid();
           return;
         }
       } catch {
         if (!cancelled) {
-          setStatus("checking");
+          setPhase("waiting");
         }
+      } finally {
+        controllers.delete(controller);
       }
 
-      timeoutId = setTimeout(poll, 5000);
+      scheduleStatusPoll();
     }
 
-    timeoutId = setTimeout(poll, 1500);
+    async function reconcilePayment() {
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+        scheduleReconcile(15000);
+        return;
+      }
+
+      const controller = createController();
+
+      try {
+        setPhase((current) => (current === "paid" ? current : "reconciling"));
+
+        const response = await fetch("/api/payments/reconcile", {
+          body: JSON.stringify({ orderId }),
+          cache: "no-store",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          method: "POST",
+          signal: controller.signal,
+        });
+        const payload = (await response.json().catch(() => ({}))) as PaymentStatusPayload;
+
+        if (cancelled) {
+          return;
+        }
+
+        if (payload.status) {
+          setStatus(payload.status);
+        }
+
+        if (response.ok && payload.paid) {
+          markPaid();
+          return;
+        }
+
+        setPhase("waiting");
+      } catch {
+        if (!cancelled) {
+          setPhase("waiting");
+        }
+      } finally {
+        controllers.delete(controller);
+      }
+
+      scheduleReconcile();
+    }
+
+    scheduleStatusPoll(500);
+    scheduleReconcile(2500);
 
     return () => {
       cancelled = true;
       if (timeoutId) {
         clearTimeout(timeoutId);
       }
+      if (reconcileTimeoutId) {
+        clearTimeout(reconcileTimeoutId);
+      }
+      controllers.forEach((controller) => {
+        controller.abort();
+      });
     };
   }, [orderId, router]);
 
   const isPaid = status === "paid";
+  const label = isPaid
+    ? "Đã xác nhận thanh toán"
+    : phase === "reconciling"
+      ? "Đang đối soát SePay"
+      : "Đang chờ xác nhận";
 
   return (
     <div className="inline-flex min-h-10 items-center gap-2 rounded-base border-2 border-border bg-secondary-background px-3 py-2 text-sm font-bold text-muted-foreground">
@@ -77,7 +175,7 @@ export function CheckoutStatusPoller({ orderId }: { orderId: string }) {
       ) : (
         <Loader2 className="size-4 animate-spin text-primary" />
       )}
-      {isPaid ? "Đã xác nhận thanh toán" : "Đang tự kiểm tra thanh toán"}
+      {label}
     </div>
   );
 }

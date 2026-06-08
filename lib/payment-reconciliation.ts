@@ -15,6 +15,35 @@ type ReconciliationResult = {
 const reconciliationThrottle = new Map<string, number>();
 const reconciliationThrottleMs = 12000;
 
+function formatSepayDate(value: Date) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    day: "2-digit",
+    hour: "2-digit",
+    hourCycle: "h23",
+    hour12: false,
+    minute: "2-digit",
+    month: "2-digit",
+    second: "2-digit",
+    timeZone: "Asia/Ho_Chi_Minh",
+    year: "numeric",
+  }).formatToParts(value);
+  const lookup = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+
+  return `${lookup.year}-${lookup.month}-${lookup.day} ${lookup.hour}:${lookup.minute}:${lookup.second}`;
+}
+
+function getTransactionDateWindow(payments: CoursePayment[]) {
+  const createdTimes = payments.map((payment) => new Date(payment.createdAt).getTime()).filter(Number.isFinite);
+  const earliestCreatedAt = createdTimes.length ? Math.min(...createdTimes) : Date.now();
+  const from = new Date(earliestCreatedAt - 10 * 60 * 1000);
+  const to = new Date(Date.now() + 5 * 60 * 1000);
+
+  return {
+    from: formatSepayDate(from),
+    to: formatSepayDate(to),
+  };
+}
+
 function normalizeComparable(value?: string) {
   return value?.replace(/\s+/g, " ").trim().toUpperCase() ?? "";
 }
@@ -51,11 +80,14 @@ async function getAdminOrm() {
 }
 
 async function findSepayTransactionForPayment(payment: CoursePayment) {
+  const dateWindow = getTransactionDateWindow([payment]);
   const result = await listSepayTransactions({
     amountInMin: payment.amountVnd,
     perPage: 20,
     q: payment.orderId,
     timeoutMs: 4000,
+    transactionDateFrom: dateWindow.from,
+    transactionDateTo: dateWindow.to,
     transferType: "in",
   });
 
@@ -153,10 +185,13 @@ export async function reconcileCoursePayments(payments: CoursePayment[], limit =
   }
 
   const minAmount = Math.min(...pendingPayments.map((payment) => payment.amountVnd));
+  const dateWindow = getTransactionDateWindow(pendingPayments);
   const transactionResult = await listSepayTransactions({
     amountInMin: minAmount,
     perPage: 100,
     timeoutMs: 5000,
+    transactionDateFrom: dateWindow.from,
+    transactionDateTo: dateWindow.to,
     transferType: "in",
   });
 
